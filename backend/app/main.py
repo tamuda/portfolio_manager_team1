@@ -11,7 +11,7 @@ from fastapi import APIRouter, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import settings
-from app.routes import health
+from app.routes import health, holdings
 
 
 def create_app() -> FastAPI:
@@ -28,6 +28,8 @@ def create_app() -> FastAPI:
     # Group every versioned route under one router, then mount it once.
     api_router = APIRouter()
     api_router.include_router(health.router, tags=["health"])
+    print("Came to main.py")
+    api_router.include_router(holdings.router, tags=["holdings"])
     app.include_router(api_router, prefix=settings.api_prefix)
 
     return app
