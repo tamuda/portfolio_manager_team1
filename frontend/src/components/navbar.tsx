@@ -1,5 +1,7 @@
 import Link from "next/link";
+import { Suspense } from "react";
 
+import { BackendStatus } from "@/components/backend-status";
 import { NavLinks } from "@/components/nav-links";
 
 export function Navbar() {
@@ -9,7 +11,17 @@ export function Navbar() {
         <Link href="/" prefetch className="text-sm font-semibold tracking-tight">
           Portfolio Manager
         </Link>
-        <NavLinks />
+
+        <div className="flex items-center gap-4">
+          <Suspense
+            fallback={
+              <span className="text-xs text-muted-foreground">Checking API…</span>
+            }
+          >
+            <BackendStatus />
+          </Suspense>
+          <NavLinks />
+        </div>
       </div>
     </header>
   );
