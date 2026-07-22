@@ -18,7 +18,7 @@ export default async function Home() {
     const holdings = await getHoldings();
     holdingCount = holdings.length;
     totalCostBasis = holdings.reduce(
-      (sum, h) => sum + computeCostBasis(h.quantity, h.purchase_price),
+      (sum, h) => sum + computeCostBasis(h.quantity_added, h.purchase_price),
       0,
     );
   } catch {

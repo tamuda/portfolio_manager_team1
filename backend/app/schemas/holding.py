@@ -2,24 +2,26 @@
 from datetime import date
 from decimal import Decimal
 
-from pydantic import BaseModel, ValidationError, Field
+from pydantic import BaseModel, ConfigDict, ValidationError, Field
 
 class HoldingCreate(BaseModel):
     ticker: str = Field(min_length=1, max_length=20)
-    quantity: Decimal = Field(gt=0)
+    quantity_added: Decimal = Field(gt=0)
     purchase_price: Decimal = Field(ge=0)
     purchase_date: date
 
 class HoldingUpdate(BaseModel):
     ticker: str | None = Field(default=None, min_length=1, max_length=20)
-    quantity: Decimal | None = Field(default=None, gt=0)
+    quantity_added: Decimal | None = Field(default=None, gt=0)
     purchase_price: Decimal | None = Field(default=None, ge=0)
     purchase_date: date | None = None
 
 class HoldingResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     id: int
     ticker: str
-    quantity: Decimal
+    quantity_added: Decimal
     purchase_price: Decimal
     purchase_date: date | None = None
 

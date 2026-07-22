@@ -22,7 +22,7 @@ export function formatDate(isoDate: string): string {
   }).format(new Date(isoDate));
 }
 
-/** Cost basis for one row: quantity × purchase price */
-export function computeCostBasis(quantity: string, purchasePrice: string): number {
-  return parseFloat(quantity) * parseFloat(purchasePrice);
+/** Cost basis for one row: quantity added × purchase price */
+export function computeCostBasis(quantityAdded: string, purchasePrice: string): number {
+  return parseFloat(quantityAdded) * parseFloat(purchasePrice);
 }

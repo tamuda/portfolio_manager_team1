@@ -11,7 +11,7 @@
 /** Payload sent to POST /api/v1/holdings */
 export type HoldingCreate = {
   ticker: string;
-  quantity: string;
+  quantity_added: string;
   purchase_price: string;
   purchase_date: string;
 };
@@ -20,7 +20,7 @@ export type HoldingCreate = {
 export type Holding = {
   id: number;
   ticker: string;
-  quantity: string;
+  quantity_added: string;
   purchase_price: string;
   purchase_date: string | null;
 };

@@ -31,7 +31,7 @@ type HoldingsTableProps = {
 export function HoldingsTable({ holdings }: HoldingsTableProps) {
   const totalCostBasis = holdings.reduce(
     (sum, holding) =>
-      sum + computeCostBasis(holding.quantity, holding.purchase_price),
+      sum + computeCostBasis(holding.quantity_added, holding.purchase_price),
     0,
   );
 
@@ -53,7 +53,7 @@ export function HoldingsTable({ holdings }: HoldingsTableProps) {
         <TableBody>
           {holdings.map((holding) => {
             const costBasis = computeCostBasis(
-              holding.quantity,
+              holding.quantity_added,
               holding.purchase_price,
             );
 
@@ -61,7 +61,7 @@ export function HoldingsTable({ holdings }: HoldingsTableProps) {
               <TableRow key={holding.id}>
                 <TableCell className="font-medium">{holding.ticker}</TableCell>
                 <TableCell className="text-right tabular-nums">
-                  {holding.quantity}
+                  {holding.quantity_added}
                 </TableCell>
                 <TableCell className="text-right tabular-nums">
                   {formatCurrency(holding.purchase_price)}

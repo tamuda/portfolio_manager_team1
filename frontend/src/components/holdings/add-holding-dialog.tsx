@@ -33,7 +33,7 @@ type AddHoldingDialogProps = {
 
 const emptyForm: HoldingCreate = {
   ticker: "",
-  quantity: "",
+  quantity_added: "",
   purchase_price: "",
   purchase_date: "",
 };
@@ -102,15 +102,15 @@ export function AddHoldingDialog({ label = "Add holding" }: AddHoldingDialogProp
           </div>
 
           <div className="grid gap-2">
-            <Label htmlFor="quantity">Quantity</Label>
+            <Label htmlFor="quantity_added">Quantity</Label>
             <Input
-              id="quantity"
+              id="quantity_added"
               type="number"
               step="any"
               min="0.000001"
               placeholder="10"
-              value={form.quantity}
-              onChange={(event) => updateField("quantity", event.target.value)}
+              value={form.quantity_added}
+              onChange={(event) => updateField("quantity_added", event.target.value)}
               required
             />
           </div>

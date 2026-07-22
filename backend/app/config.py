@@ -19,5 +19,8 @@ class Settings(BaseSettings):
     # Origins allowed to call the API from a browser (the Next.js dev server).
     cors_origins: list[str] = ["http://localhost:3000"]
 
+    # MySQL connection string, e.g. mysql+pymysql://user:password@localhost:3306/portfolio
+    database_url: str = "mysql+pymysql://root:password@localhost:3306/portfolio"
+
 
 settings = Settings()
