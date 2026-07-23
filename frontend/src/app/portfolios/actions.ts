@@ -26,6 +26,7 @@ export async function createHoldingAction(
   try {
     await createHolding(input);
     revalidatePath("/portfolios");
+    revalidatePath("/");
     return { success: true };
   } catch (error) {
     const message =
@@ -42,6 +43,7 @@ export async function deleteHoldingAction(id: number): Promise<ActionResult> {
   try {
     await deleteHolding(id);
     revalidatePath("/portfolios");
+    revalidatePath("/");
     return { success: true };
   } catch (error) {
     const message =

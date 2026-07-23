@@ -1,17 +1,20 @@
 import Link from "next/link";
 
+import { HoldingsHistoryChart } from "@/components/dashboard/holdings-history-chart";
 import { buttonVariants } from "@/components/ui/button";
-import { getHoldings } from "@/lib/api/holdings";
-import { formatCurrency, computeCostBasis } from "@/lib/format";
+import { getHoldings, getHoldingsPerformance } from "@/lib/api/holdings";
+import { computeCostBasis, formatCurrency } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
 /**
  * Dashboard — high-level portfolio overview.
- * Fetches holdings server-side and shows a simple summary card.
+ * Uses performance data when available; falls back to cost basis only.
  */
 export default async function Home() {
   let holdingCount = 0;
   let totalCostBasis = 0;
+  let totalMarketValue: number | null = null;
+  let totalGainLoss: number | null = null;
   let apiAvailable = true;
 
   try {
@@ -21,6 +24,22 @@ export default async function Home() {
       (sum, h) => sum + computeCostBasis(h.quantity_added, h.purchase_price),
       0,
     );
+
+    if (holdings.length > 0) {
+      try {
+        const performance = await getHoldingsPerformance();
+        totalMarketValue = performance.reduce(
+          (sum, h) => sum + parseFloat(h.market_value),
+          0,
+        );
+        totalGainLoss = performance.reduce(
+          (sum, h) => sum + parseFloat(h.gain_loss),
+          0,
+        );
+      } catch {
+        // Performance unavailable — dashboard shows cost basis only.
+      }
+    }
   } catch {
     apiAvailable = false;
   }
@@ -32,7 +51,7 @@ export default async function Home() {
         Welcome to Portfolio Manager.
       </p>
 
-      <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <div className="rounded-xl border p-5">
           <p className="text-sm text-muted-foreground">Holdings</p>
           <p className="mt-1 text-3xl font-semibold tabular-nums">
@@ -47,15 +66,37 @@ export default async function Home() {
           </p>
         </div>
 
-        <div className="rounded-xl border p-5 sm:col-span-2 lg:col-span-1">
-          <p className="text-sm text-muted-foreground">Quick action</p>
-          <Link
-            href="/portfolios"
-            className={cn(buttonVariants(), "mt-3")}
-          >
-            Manage holdings
-          </Link>
+        <div className="rounded-xl border p-5">
+          <p className="text-sm text-muted-foreground">Market value</p>
+          <p className="mt-1 text-3xl font-semibold tabular-nums">
+            {apiAvailable && totalMarketValue !== null
+              ? formatCurrency(totalMarketValue)
+              : "—"}
+          </p>
         </div>
+
+        <div className="rounded-xl border p-5">
+          <p className="text-sm text-muted-foreground">Total gain / loss</p>
+          <p
+            className={cn(
+              "mt-1 text-3xl font-semibold tabular-nums",
+              totalGainLoss !== null &&
+                (totalGainLoss >= 0 ? "text-emerald-600" : "text-red-600"),
+            )}
+          >
+            {apiAvailable && totalGainLoss !== null
+              ? formatCurrency(totalGainLoss)
+              : "—"}
+          </p>
+        </div>
+      </div>
+
+      <HoldingsHistoryChart />
+
+      <div className="mt-6">
+        <Link href="/portfolios" className={cn(buttonVariants())}>
+          Manage holdings
+        </Link>
       </div>
     </div>
   );

@@ -1,25 +1,38 @@
 import { AddHoldingDialog } from "@/components/holdings/add-holding-dialog";
+import { BasicHoldingsTable } from "@/components/holdings/basic-holdings-table";
 import { HoldingsEmptyState } from "@/components/holdings/holdings-empty-state";
 import { HoldingsErrorState } from "@/components/holdings/holdings-error-state";
 import { HoldingsTable } from "@/components/holdings/holdings-table";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { ApiError } from "@/lib/api/client";
-import { getHoldings } from "@/lib/api/holdings";
-import type { Holding } from "@/types/holding";
+import { getHoldings, getHoldingsPerformance } from "@/lib/api/holdings";
+import type { Holding, HoldingPerformance } from "@/types/holding";
 
 /**
  * Portfolios page — Server Component.
  *
- * Data flow:
- *   1. Page fetches holdings on the server (getHoldings)
- *   2. Passes the list to HoldingsTable (read-only)
- *   3. Add/Delete buttons call Server Actions → API → revalidatePath
+ * Prefers GET /holdings/performance (live prices via yfinance on backend).
+ * Falls back to GET /holdings if price data is unavailable.
  */
 export default async function PortfoliosPage() {
   let holdings: Holding[] = [];
+  let performance: HoldingPerformance[] | null = null;
   let errorMessage: string | null = null;
+  let priceWarning: string | null = null;
 
   try {
     holdings = await getHoldings();
+
+    if (holdings.length > 0) {
+      try {
+        performance = await getHoldingsPerformance();
+      } catch (error) {
+        priceWarning =
+          error instanceof ApiError
+            ? error.message
+            : "Live prices are temporarily unavailable. Showing cost basis only.";
+      }
+    }
   } catch (error) {
     errorMessage =
       error instanceof ApiError
@@ -37,16 +50,26 @@ export default async function PortfoliosPage() {
           </p>
         </div>
 
-        {/* Hide add button when the API is down — nothing to save to */}
         {!errorMessage && <AddHoldingDialog />}
       </div>
 
       {errorMessage && <HoldingsErrorState message={errorMessage} />}
 
+      {!errorMessage && priceWarning && (
+        <Alert className="mt-8">
+          <AlertTitle>Live prices unavailable</AlertTitle>
+          <AlertDescription>{priceWarning}</AlertDescription>
+        </Alert>
+      )}
+
       {!errorMessage && holdings.length === 0 && <HoldingsEmptyState />}
 
-      {!errorMessage && holdings.length > 0 && (
-        <HoldingsTable holdings={holdings} />
+      {!errorMessage && holdings.length > 0 && performance && (
+        <HoldingsTable holdings={performance} />
+      )}
+
+      {!errorMessage && holdings.length > 0 && !performance && (
+        <BasicHoldingsTable holdings={holdings} />
       )}
     </div>
   );
