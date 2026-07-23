@@ -12,12 +12,36 @@ import { revalidatePath } from "next/cache";
 
 import { ApiError } from "@/lib/api/client";
 import { createHolding, deleteHolding } from "@/lib/api/holdings";
+import { getLatestPrice } from "@/lib/api/market-data";
 import type { HoldingCreate } from "@/types/holding";
 
 type ActionResult = {
   success: boolean;
   error?: string;
 };
+
+type PriceActionResult = {
+  success: boolean;
+  price?: string;
+  error?: string;
+};
+
+/** Look up the latest closing price for a ticker (used to suggest a purchase price). */
+export async function getLatestPriceAction(
+  ticker: string,
+): Promise<PriceActionResult> {
+  try {
+    const { price } = await getLatestPrice(ticker);
+    return { success: true, price };
+  } catch (error) {
+    const message =
+      error instanceof ApiError
+        ? error.message
+        : "Something went wrong while fetching the latest price.";
+
+    return { success: false, error: message };
+  }
+}
 
 /** Create a holding and refresh the portfolios page. */
 export async function createHoldingAction(
