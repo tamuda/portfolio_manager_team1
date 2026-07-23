@@ -31,7 +31,7 @@ class HoldingPerformanceResponse(HoldingResponse):
     cost_basis: Decimal
     market_value: Decimal
     gain_loss: Decimal
-    return_percentage: Decimal | None
+    gain_loss_percentage: Decimal | None
 
 class PortfolioSummaryResponse(BaseModel):
     total_cost_basis: Decimal
