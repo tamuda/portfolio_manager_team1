@@ -1,10 +1,12 @@
 import Link from "next/link";
+import { ArrowDownIcon, ArrowUpIcon } from "lucide-react";
 
-import { HoldingsHistoryChart } from "@/components/dashboard/holdings-history-chart";
+import { PortfolioOverviewCharts } from "@/components/dashboard/portfolio-overview-charts";
 import { buttonVariants } from "@/components/ui/button";
 import { getHoldings, getHoldingsPerformance } from "@/lib/api/holdings";
 import { computeCostBasis, formatCurrency } from "@/lib/format";
 import { cn } from "@/lib/utils";
+import type { HoldingPerformance } from "@/types/holding";
 
 /**
  * Dashboard — high-level portfolio overview.
@@ -15,6 +17,7 @@ export default async function Home() {
   let totalCostBasis = 0;
   let totalMarketValue: number | null = null;
   let totalGainLoss: number | null = null;
+  let performance: HoldingPerformance[] | null = null;
   let apiAvailable = true;
 
   try {
@@ -27,12 +30,13 @@ export default async function Home() {
 
     if (holdings.length > 0) {
       try {
-        const performance = await getHoldingsPerformance();
-        totalMarketValue = performance.reduce(
+        const performanceData = await getHoldingsPerformance();
+        performance = performanceData;
+        totalMarketValue = performanceData.reduce(
           (sum, h) => sum + parseFloat(h.market_value),
           0,
         );
-        totalGainLoss = performance.reduce(
+        totalGainLoss = performanceData.reduce(
           (sum, h) => sum + parseFloat(h.gain_loss),
           0,
         );
@@ -50,6 +54,12 @@ export default async function Home() {
       <p className="mt-2 text-muted-foreground">
         Welcome to Portfolio Manager.
       </p>
+
+      <div className="mt-6">
+        <Link href="/portfolios" className={cn(buttonVariants())}>
+          Manage holdings
+        </Link>
+      </div>
 
       <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <div className="rounded-xl border p-5">
@@ -79,25 +89,27 @@ export default async function Home() {
           <p className="text-sm text-muted-foreground">Total gain / loss</p>
           <p
             className={cn(
-              "mt-1 text-3xl font-semibold tabular-nums",
+              "mt-1 flex items-center gap-1.5 text-3xl font-semibold tabular-nums",
               totalGainLoss !== null &&
                 (totalGainLoss >= 0 ? "text-emerald-600" : "text-red-600"),
             )}
           >
+            {apiAvailable && totalGainLoss !== null && totalGainLoss > 0 && (
+              <ArrowUpIcon className="size-7 shrink-0" aria-hidden />
+            )}
+            {apiAvailable && totalGainLoss !== null && totalGainLoss < 0 && (
+              <ArrowDownIcon className="size-7 shrink-0" aria-hidden />
+            )}
             {apiAvailable && totalGainLoss !== null
-              ? formatCurrency(totalGainLoss)
+              ? formatCurrency(Math.abs(totalGainLoss))
               : "—"}
           </p>
         </div>
       </div>
 
-      <HoldingsHistoryChart />
-
-      <div className="mt-6">
-        <Link href="/portfolios" className={cn(buttonVariants())}>
-          Manage holdings
-        </Link>
-      </div>
+      {performance && performance.length > 0 && (
+        <PortfolioOverviewCharts holdings={performance} />
+      )}
     </div>
   );
 }
