@@ -11,7 +11,7 @@ from fastapi import APIRouter, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import settings
-from app.routes import health, holdings, market_data
+from app.routes import health, holdings, market_data, watchlist
 
 
 def create_app() -> FastAPI:
@@ -31,6 +31,7 @@ def create_app() -> FastAPI:
     print("Came to main.py")
     api_router.include_router(holdings.router, tags=["holdings"])
     api_router.include_router(market_data.router, tags=["market-data"])
+    api_router.include_router(watchlist.router, tags=["watchlist"])
     app.include_router(api_router, prefix=settings.api_prefix)
 
     return app

@@ -26,3 +26,18 @@ export function formatDate(isoDate: string): string {
 export function computeCostBasis(quantityAdded: string, purchasePrice: string): number {
   return parseFloat(quantityAdded) * parseFloat(purchasePrice);
 }
+
+/** A stats-grid value, or "–" when the data isn't available. */
+export function formatPrice(value: number | null): string {
+  return value === null ? "–" : value.toFixed(2);
+}
+
+/** Large numbers (volume, market cap) in compact form, e.g. 5_076_000 → "5.08M" */
+export function formatCompactNumber(value: number | null): string {
+  if (value === null) return "–";
+
+  return new Intl.NumberFormat("en-US", {
+    notation: "compact",
+    maximumFractionDigits: 2,
+  }).format(value);
+}
