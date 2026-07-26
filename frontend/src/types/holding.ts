@@ -39,7 +39,7 @@ export type HoldingPerformance = Holding & {
   gain_loss_percentage: string | null;
 };
 
-/** Reserved for a future portfolio summary endpoint. */
+/** Aggregated portfolio totals from GET /holdings/summary */
 export type PortfolioSummary = {
   total_cost_basis: string;
   total_market_value: string;

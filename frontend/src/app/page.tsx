@@ -3,7 +3,11 @@ import { ArrowDownIcon, ArrowUpIcon } from "lucide-react";
 
 import { PortfolioOverviewCharts } from "@/components/dashboard/portfolio-overview-charts";
 import { buttonVariants } from "@/components/ui/button";
-import { getHoldings, getHoldingsPerformance } from "@/lib/api/holdings";
+import {
+  getHoldings,
+  getHoldingsPerformance,
+  getPortfolioSummary,
+} from "@/lib/api/holdings";
 import { computeCostBasis, formatCurrency } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import type { HoldingPerformance } from "@/types/holding";
@@ -17,6 +21,7 @@ export default async function Home() {
   let totalCostBasis = 0;
   let totalMarketValue: number | null = null;
   let totalGainLoss: number | null = null;
+  let returnPercentage: number | null = null;
   let performance: HoldingPerformance[] | null = null;
   let apiAvailable = true;
 
@@ -30,18 +35,17 @@ export default async function Home() {
 
     if (holdings.length > 0) {
       try {
-        const performanceData = await getHoldingsPerformance();
+        const [performanceData, summary] = await Promise.all([
+          getHoldingsPerformance(),
+          getPortfolioSummary(),
+        ]);
         performance = performanceData;
-        totalMarketValue = performanceData.reduce(
-          (sum, h) => sum + parseFloat(h.market_value),
-          0,
-        );
-        totalGainLoss = performanceData.reduce(
-          (sum, h) => sum + parseFloat(h.gain_loss),
-          0,
-        );
+        totalCostBasis = parseFloat(summary.total_cost_basis);
+        totalMarketValue = parseFloat(summary.total_market_value);
+        totalGainLoss = parseFloat(summary.total_gain_loss);
+        returnPercentage = parseFloat(summary.portfolio_return_percentage);
       } catch {
-        // Performance unavailable — dashboard shows cost basis only.
+        // Performance/summary unavailable — dashboard shows cost basis only.
       }
     }
   } catch {
@@ -103,6 +107,12 @@ export default async function Home() {
             {apiAvailable && totalGainLoss !== null
               ? formatCurrency(Math.abs(totalGainLoss))
               : "—"}
+            {apiAvailable && returnPercentage !== null && (
+              <span className="text-base font-medium tabular-nums">
+                ({returnPercentage >= 0 ? "+" : ""}
+                {returnPercentage.toFixed(2)}%)
+              </span>
+            )}
           </p>
         </div>
       </div>

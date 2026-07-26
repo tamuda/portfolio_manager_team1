@@ -1,8 +1,17 @@
 """ORM models mapping to database tables."""
 
-from sqlalchemy import Column, Date, Integer, Numeric, String
+import enum
+
+from sqlalchemy import Column, Date, DateTime, Enum as SAEnum, ForeignKey, Integer, Numeric, String, func
 
 from app.database.connection import Base
+
+
+class TransactionType(str, enum.Enum):
+    BUY = "BUY"
+    SELL = "SELL"
+    TRANSFER_IN = "TRANSFER_IN"
+    TRANSFER_OUT = "TRANSFER_OUT"
 
 
 class Holding(Base):
@@ -21,3 +30,29 @@ class WatchlistItem(Base):
     id = Column(Integer, primary_key=True, autoincrement=True)
     ticker = Column(String(20), nullable=False, index=True)
     position = Column(Integer, nullable=False, default=0)
+
+
+class Account(Base):
+    """The single brokerage account. Cash balance is funded by transfers."""
+
+    __tablename__ = "accounts"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    cash_balance = Column(Numeric(18, 6), nullable=False, default=0)
+
+
+class Transaction(Base):
+    """Append-only ledger of every buy, sell, and transfer (mirrors a brokerage activity feed)."""
+
+    __tablename__ = "transactions"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    account_id = Column(Integer, ForeignKey("accounts.id"), nullable=False, index=True)
+    type = Column(SAEnum(TransactionType), nullable=False)
+    ticker = Column(String(20), nullable=True, index=True)
+    quantity = Column(Numeric(18, 6), nullable=True)
+    price = Column(Numeric(18, 6), nullable=True)
+    amount = Column(Numeric(18, 6), nullable=False)
+    realized_gain_loss = Column(Numeric(18, 6), nullable=True)
+    cash_balance_after = Column(Numeric(18, 6), nullable=False)
+    executed_at = Column(DateTime, nullable=False, server_default=func.now())

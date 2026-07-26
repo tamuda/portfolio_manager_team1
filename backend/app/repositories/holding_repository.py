@@ -15,6 +15,17 @@ def get_holding(db: Session, holding_id: int) -> Holding | None:
     return db.get(Holding, holding_id)
 
 
+def get_holdings_by_ticker(db: Session, ticker: str) -> list[Holding]:
+    """Return every lot of a ticker, oldest purchase first (for FIFO disposal on sell)."""
+
+    return (
+        db.query(Holding)
+        .filter(Holding.ticker == ticker)
+        .order_by(Holding.purchase_date.asc(), Holding.id.asc())
+        .all()
+    )
+
+
 def create_holding(db: Session, data: HoldingCreate) -> Holding:
     holding = Holding(
         ticker=data.ticker,

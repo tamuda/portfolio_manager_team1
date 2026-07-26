@@ -5,6 +5,7 @@
  *   GET    /holdings                 → list all holdings
  *   POST   /holdings                 → create a holding
  *   GET    /holdings/performance     → list holdings with live prices & P/L
+ *   GET    /holdings/summary         → aggregated portfolio totals
  *   GET    /holdings/:id             → get one holding
  *   PATCH  /holdings/:id             → update a holding (Michaela's task)
  *   DELETE /holdings/:id             → remove a holding
@@ -15,6 +16,7 @@ import type {
   Holding,
   HoldingCreate,
   HoldingPerformance,
+  PortfolioSummary,
 } from "@/types/holding";
 
 const HOLDINGS_PATH = "/holdings";
@@ -30,6 +32,15 @@ export async function getHoldings(): Promise<Holding[]> {
  */
 export async function getHoldingsPerformance(): Promise<HoldingPerformance[]> {
   return apiFetch<HoldingPerformance[]>(`${HOLDINGS_PATH}/performance`);
+}
+
+/**
+ * Fetch aggregated portfolio totals (cost basis, market value, gain/loss,
+ * return %) computed server-side from live prices.
+ * Returns 503 if a ticker's price cannot be fetched.
+ */
+export async function getPortfolioSummary(): Promise<PortfolioSummary> {
+  return apiFetch<PortfolioSummary>(`${HOLDINGS_PATH}/summary`);
 }
 
 /** Create a new holding. Returns the saved record (with id). */

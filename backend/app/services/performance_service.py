@@ -1,5 +1,5 @@
 from decimal import Decimal
-from typing import TypedDict
+from typing import Protocol, Sequence, TypedDict
 
 
 class HoldingPerformance(TypedDict):
@@ -8,6 +8,18 @@ class HoldingPerformance(TypedDict):
     market_value: Decimal
     gain_loss: Decimal
     gain_loss_percentage: Decimal
+
+
+class PortfolioSummary(TypedDict):
+    total_cost_basis: Decimal
+    total_market_value: Decimal
+    total_gain_loss: Decimal
+    portfolio_return_percentage: Decimal
+
+
+class HasCostAndMarketValue(Protocol):
+    cost_basis: Decimal
+    market_value: Decimal
 
 
 def calculate_holding_performance(
@@ -53,4 +65,37 @@ def calculate_holding_performance(
         "market_value": market_value,
         "gain_loss": gain_loss,
         "gain_loss_percentage": gain_loss_percentage,
+    }
+
+
+def calculate_portfolio_summary(
+    holdings: Sequence[HasCostAndMarketValue],
+) -> PortfolioSummary:
+    """
+    Aggregate per-holding performance into portfolio-wide totals.
+
+    Args:
+        holdings: Holdings that already carry a cost_basis and market_value
+            (e.g. the HoldingPerformanceResponse list from /holdings/performance).
+
+    Returns:
+        A dictionary containing the portfolio's aggregated performance.
+    """
+
+    total_cost_basis = sum((h.cost_basis for h in holdings), Decimal("0"))
+    total_market_value = sum((h.market_value for h in holdings), Decimal("0"))
+    total_gain_loss = total_market_value - total_cost_basis
+
+    if total_cost_basis == 0:
+        portfolio_return_percentage = Decimal("0")
+    else:
+        portfolio_return_percentage = (
+            total_gain_loss / total_cost_basis
+        ) * Decimal("100")
+
+    return {
+        "total_cost_basis": total_cost_basis,
+        "total_market_value": total_market_value,
+        "total_gain_loss": total_gain_loss,
+        "portfolio_return_percentage": portfolio_return_percentage,
     }

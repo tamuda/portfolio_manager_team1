@@ -9,7 +9,8 @@ from app.schemas.holding import (
     HoldingCreate,
     HoldingResponse,
     HoldingUpdate,
-    HoldingPerformanceResponse
+    HoldingPerformanceResponse,
+    PortfolioSummaryResponse,
 )
 from app.services.market_data_service import (
     MarketDataError,
@@ -17,6 +18,7 @@ from app.services.market_data_service import (
 )
 from app.services.performance_service import (
     calculate_holding_performance,
+    calculate_portfolio_summary,
 )
 
 router = APIRouter(
@@ -39,12 +41,8 @@ def create_holding(request: HoldingCreate, db: Session = Depends(get_db)) -> Hol
             detail="Holding data violates a database constraint",
         ) from exc
     
-@router.get(
-    "/performance",
-    response_model=list[HoldingPerformanceResponse],
-)
-def get_holdings_performance(
-    db: Session = Depends(get_db),
+def _get_holdings_performance(
+    db: Session,
 ) -> list[HoldingPerformanceResponse]:
     holdings = holding_repository.get_holdings(db)
 
@@ -85,6 +83,28 @@ def get_holdings_performance(
         results.append(response)
 
     return results
+
+
+@router.get(
+    "/performance",
+    response_model=list[HoldingPerformanceResponse],
+)
+def get_holdings_performance(
+    db: Session = Depends(get_db),
+) -> list[HoldingPerformanceResponse]:
+    return _get_holdings_performance(db)
+
+
+@router.get(
+    "/summary",
+    response_model=PortfolioSummaryResponse,
+)
+def get_portfolio_summary(
+    db: Session = Depends(get_db),
+) -> PortfolioSummaryResponse:
+    holdings_performance = _get_holdings_performance(db)
+    summary = calculate_portfolio_summary(holdings_performance)
+    return PortfolioSummaryResponse(**summary)
 
 @router.get("/{holding_id}", response_model=HoldingResponse)
 def get_holding(holding_id: int, db: Session = Depends(get_db)) -> HoldingResponse:
