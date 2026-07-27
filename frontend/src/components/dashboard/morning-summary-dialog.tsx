@@ -31,8 +31,8 @@ export function MorningSummaryDialog() {
         {labels.button}
       </DialogTrigger>
       <DialogContent
-        className="overflow-hidden rounded-3xl border-border/60 bg-transparent p-0 shadow-2xl sm:max-w-3xl [&_[data-slot=dialog-close]]:top-4 [&_[data-slot=dialog-close]]:right-4 [&_[data-slot=dialog-close]]:z-10 sm:[&_[data-slot=dialog-close]]:top-5 sm:[&_[data-slot=dialog-close]]:right-5"
-        showCloseButton
+        className="overflow-hidden rounded-3xl border-border/60 bg-transparent p-0 shadow-2xl sm:max-w-3xl"
+        showCloseButton={false}
       >
         <DialogHeader className="sr-only">
           <DialogTitle>{labels.title}</DialogTitle>

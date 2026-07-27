@@ -2,12 +2,18 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { ArrowRightIcon, Loader2Icon, SparklesIcon } from "lucide-react";
+import {
+  ArrowRightIcon,
+  Loader2Icon,
+  SparklesIcon,
+  XIcon,
+} from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 
 import { MorningSummaryMoverCard } from "@/components/dashboard/morning-summary-mover-card";
 import { RotateCw } from "@/components/animate-ui/icons/rotate-cw";
 import { Button, buttonVariants } from "@/components/ui/button";
+import { DialogClose } from "@/components/ui/dialog";
 import { useSmoothTypewriter } from "@/hooks/use-smooth-typewriter";
 import { getBriefLabels, type BriefLabels } from "@/lib/morning-summary/time-bound";
 import { cn } from "@/lib/utils";
@@ -212,21 +218,35 @@ export function MorningSummaryView({
   return (
     <div className="relative overflow-hidden rounded-3xl border border-border/60 bg-[radial-gradient(circle_at_top_left,rgba(66,133,244,0.12),transparent_42%),radial-gradient(circle_at_top_right,rgba(155,114,203,0.14),transparent_38%),radial-gradient(circle_at_bottom,rgba(217,101,112,0.08),transparent_40%)] p-1">
       <div className="relative rounded-[calc(1.5rem-4px)] bg-background/85 p-5 backdrop-blur-xl sm:p-6">
-        <Button
-          variant="ghost"
-          size="icon-sm"
-          className="absolute right-3 top-3 text-muted-foreground hover:bg-white/5 hover:text-foreground sm:right-4 sm:top-4"
-          onClick={() => {
-            onRetry?.();
-            void loadSummary();
-          }}
-          disabled={phase === "loading" || phase === "streaming"}
-          aria-label="Refresh brief"
-        >
-          <RotateCw size={16} animateOnHover animation="rotate" />
-        </Button>
+        <div className="absolute right-3 top-3 z-10 flex items-center gap-0.5 sm:right-4 sm:top-4">
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            className="text-muted-foreground hover:bg-white/5 hover:text-foreground"
+            onClick={() => {
+              onRetry?.();
+              void loadSummary();
+            }}
+            disabled={phase === "loading" || phase === "streaming"}
+            aria-label="Refresh brief"
+          >
+            <RotateCw size={16} animateOnHover animation="rotate" />
+          </Button>
+          <DialogClose
+            render={
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                className="text-muted-foreground hover:bg-white/5 hover:text-foreground"
+              />
+            }
+          >
+            <XIcon className="size-4" />
+            <span className="sr-only">Close</span>
+          </DialogClose>
+        </div>
 
-        <div className="space-y-2.5 pr-10">
+        <div className="space-y-2.5 pr-20">
           <div className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-xs text-muted-foreground">
             <SparklesIcon className="size-3.5 text-[#9b72cb]" />
             {labels.badge}
