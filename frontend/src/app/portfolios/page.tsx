@@ -1,27 +1,40 @@
-import { AddHoldingDialog } from "@/components/holdings/add-holding-dialog";
 import { BasicHoldingsTable } from "@/components/holdings/basic-holdings-table";
+import { CashBalanceStrip } from "@/components/holdings/cash-balance-strip";
 import { HoldingsEmptyState } from "@/components/holdings/holdings-empty-state";
 import { HoldingsErrorState } from "@/components/holdings/holdings-error-state";
 import { HoldingsTable } from "@/components/holdings/holdings-table";
+import { TransactionsActivity } from "@/components/holdings/transactions-activity";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { getAccount } from "@/lib/api/account";
 import { ApiError } from "@/lib/api/client";
 import { getHoldings, getHoldingsPerformance } from "@/lib/api/holdings";
+import { listTransactions } from "@/lib/api/transactions";
 import type { Holding, HoldingPerformance } from "@/types/holding";
+import type { Transaction } from "@/types/transaction";
 
 /**
  * Portfolios page — Server Component.
  *
- * Prefers GET /holdings/performance (live prices via yfinance on backend).
- * Falls back to GET /holdings if price data is unavailable.
+ * Cash-aware Buy / Sell / Deposit flow against the transactions API.
+ * Prefers GET /holdings/performance; falls back to GET /holdings on price errors.
  */
 export default async function PortfoliosPage() {
   let holdings: Holding[] = [];
   let performance: HoldingPerformance[] | null = null;
+  let cashBalance = 0;
+  let transactions: Transaction[] = [];
   let errorMessage: string | null = null;
   let priceWarning: string | null = null;
 
   try {
-    holdings = await getHoldings();
+    const [account, holdingsData, txs] = await Promise.all([
+      getAccount(),
+      getHoldings(),
+      listTransactions(),
+    ]);
+    cashBalance = parseFloat(account.cash_balance);
+    holdings = holdingsData;
+    transactions = txs;
 
     if (holdings.length > 0) {
       try {
@@ -46,14 +59,14 @@ export default async function PortfoliosPage() {
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">Portfolios</h1>
           <p className="mt-2 text-muted-foreground">
-            Browse, add, and remove holdings in your portfolio.
+            Deposit cash, buy and sell stocks, and review your activity ledger.
           </p>
         </div>
-
-        {!errorMessage && <AddHoldingDialog />}
       </div>
 
       {errorMessage && <HoldingsErrorState message={errorMessage} />}
+
+      {!errorMessage && <CashBalanceStrip cashBalance={cashBalance} />}
 
       {!errorMessage && priceWarning && (
         <Alert className="mt-8">
@@ -62,7 +75,9 @@ export default async function PortfoliosPage() {
         </Alert>
       )}
 
-      {!errorMessage && holdings.length === 0 && <HoldingsEmptyState />}
+      {!errorMessage && holdings.length === 0 && (
+        <HoldingsEmptyState cashBalance={cashBalance} />
+      )}
 
       {!errorMessage && holdings.length > 0 && performance && (
         <HoldingsTable holdings={performance} />
@@ -71,6 +86,8 @@ export default async function PortfoliosPage() {
       {!errorMessage && holdings.length > 0 && !performance && (
         <BasicHoldingsTable holdings={holdings} />
       )}
+
+      {!errorMessage && <TransactionsActivity transactions={transactions} />}
     </div>
   );
 }

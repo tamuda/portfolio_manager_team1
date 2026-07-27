@@ -1,4 +1,5 @@
-import { AddHoldingDialog } from "@/components/holdings/add-holding-dialog";
+import { BuyStockDialog } from "@/components/holdings/buy-stock-dialog";
+import { CashTransferDialog } from "@/components/holdings/cash-transfer-dialog";
 import {
   Card,
   CardContent,
@@ -6,22 +7,36 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { formatCurrency } from "@/lib/format";
+
+type HoldingsEmptyStateProps = {
+  cashBalance: number;
+};
 
 /**
  * Shown when the portfolio has no holdings yet.
- * The primary action opens the same Add dialog used in the page header.
+ * Cash starts at $0 — prompt deposit first when needed.
  */
-export function HoldingsEmptyState() {
+export function HoldingsEmptyState({ cashBalance }: HoldingsEmptyStateProps) {
   return (
     <Card className="mt-8">
       <CardHeader className="items-center text-center">
         <CardTitle>No holdings yet</CardTitle>
         <CardDescription>
-          Add your first stock to start tracking your portfolio.
+          {cashBalance <= 0
+            ? "Deposit cash, then buy your first stock."
+            : `You have ${formatCurrency(cashBalance)} available — buy your first stock to start tracking.`}
         </CardDescription>
       </CardHeader>
-      <CardContent className="flex justify-center pb-8">
-        <AddHoldingDialog label="Add your first holding" />
+      <CardContent className="flex flex-wrap justify-center gap-2 pb-8">
+        <CashTransferDialog
+          cashBalance={cashBalance}
+          defaultDirection="DEPOSIT"
+        />
+        <BuyStockDialog
+          cashBalance={cashBalance}
+          label="Buy your first stock"
+        />
       </CardContent>
     </Card>
   );

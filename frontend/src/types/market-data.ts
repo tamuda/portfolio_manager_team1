@@ -51,3 +51,18 @@ export type Quote = {
   points: PricePoint[];
   stats: QuoteStats;
 };
+
+/** Single headline from GET /market-data/news/:ticker */
+export type NewsItem = {
+  title: string;
+  summary: string | null;
+  published_at: string | null;
+  source: string | null;
+  url: string | null;
+};
+
+/** Response shape for GET /market-data/news/:ticker */
+export type NewsResponse = {
+  ticker: string;
+  items: NewsItem[];
+};

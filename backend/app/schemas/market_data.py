@@ -34,3 +34,16 @@ class QuoteResponse(BaseModel):
     change_percent: float | None = None
     points: list[PricePoint]
     stats: QuoteStats
+
+
+class NewsItem(BaseModel):
+    title: str
+    summary: str | None = None
+    published_at: str | None = None
+    source: str | None = None
+    url: str | None = None
+
+
+class NewsResponse(BaseModel):
+    ticker: str
+    items: list[NewsItem]

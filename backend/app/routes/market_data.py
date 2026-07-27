@@ -1,9 +1,10 @@
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, HTTPException, Query, status
 
-from app.schemas.market_data import PriceResponse, QuoteResponse
+from app.schemas.market_data import NewsResponse, PriceResponse, QuoteResponse
 from app.services.market_data_service import (
     MarketDataError,
     get_latest_price,
+    get_news,
     get_quote,
 )
 
@@ -47,3 +48,24 @@ def read_quote(ticker: str, range: str = "1D") -> QuoteResponse:
         ) from exc
 
     return QuoteResponse(**data)
+
+
+@router.get("/news/{ticker}", response_model=NewsResponse)
+def read_news(
+    ticker: str,
+    limit: int = Query(default=5, ge=1, le=20),
+) -> NewsResponse:
+    try:
+        items = get_news(ticker, limit=limit)
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(exc),
+        ) from exc
+    except MarketDataError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=f"Could not retrieve news for {ticker}.",
+        ) from exc
+
+    return NewsResponse(ticker=ticker.strip().upper(), items=items)

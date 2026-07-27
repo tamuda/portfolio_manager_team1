@@ -21,63 +21,17 @@ import {
   type ChartConfig,
 } from "@/components/ui/chart";
 import { formatCurrency } from "@/lib/format";
+import {
+  aggregateByTicker,
+  type TickerAllocation,
+} from "@/lib/portfolio/allocation";
 import type { HoldingPerformance } from "@/types/holding";
-
-const ALLOCATION_COLORS = [
-  "var(--chart-1)",
-  "var(--chart-2)",
-  "var(--chart-3)",
-  "var(--chart-4)",
-  "var(--chart-5)",
-];
 
 type PortfolioOverviewChartsProps = {
   holdings: HoldingPerformance[];
 };
 
-type TickerSummary = {
-  ticker: string;
-  market_value: number;
-  gain_loss: number;
-  share: number;
-  fill: string;
-};
-
-/** Combine all lots of the same ticker into one row for dashboard charts. */
-function aggregateByTicker(holdings: HoldingPerformance[]): TickerSummary[] {
-  const totals = new Map<string, { market_value: number; gain_loss: number }>();
-
-  for (const holding of holdings) {
-    const current = totals.get(holding.ticker) ?? {
-      market_value: 0,
-      gain_loss: 0,
-    };
-    totals.set(holding.ticker, {
-      market_value: current.market_value + parseFloat(holding.market_value),
-      gain_loss: current.gain_loss + parseFloat(holding.gain_loss),
-    });
-  }
-
-  const portfolioMarketValue = [...totals.values()].reduce(
-    (sum, entry) => sum + entry.market_value,
-    0,
-  );
-
-  return [...totals.entries()]
-    .sort(([tickerA], [tickerB]) => tickerA.localeCompare(tickerB))
-    .map(([ticker, entry], index) => ({
-      ticker,
-      market_value: entry.market_value,
-      gain_loss: entry.gain_loss,
-      share:
-        portfolioMarketValue > 0
-          ? (entry.market_value / portfolioMarketValue) * 100
-          : 0,
-      fill: ALLOCATION_COLORS[index % ALLOCATION_COLORS.length],
-    }));
-}
-
-function buildAllocationConfig(rows: TickerSummary[]): ChartConfig {
+function buildAllocationConfig(rows: TickerAllocation[]): ChartConfig {
   return Object.fromEntries(
     rows.map((row) => [
       row.ticker,
@@ -116,7 +70,7 @@ export function PortfolioOverviewCharts({
                   <ChartTooltipContent
                     hideLabel
                     formatter={(value, _name, item) => {
-                      const payload = item.payload as TickerSummary;
+                      const payload = item.payload as TickerAllocation;
                       return (
                         <span className="font-medium tabular-nums">
                           {payload.ticker}: {formatCurrency(Number(value))} (

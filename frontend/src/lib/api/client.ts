@@ -64,8 +64,14 @@ export async function apiFetch<T>(
     let detail = response.statusText;
 
     try {
-      const body = (await response.json()) as { detail?: string };
-      if (body.detail) detail = body.detail;
+      const body = (await response.json()) as {
+        detail?: string | { msg?: string }[];
+      };
+      if (typeof body.detail === "string") {
+        detail = body.detail;
+      } else if (Array.isArray(body.detail) && body.detail[0]?.msg) {
+        detail = body.detail.map((item) => item.msg).join(" ");
+      }
     } catch {
       // Response body wasn't JSON — keep statusText.
     }

@@ -7,15 +7,18 @@
  * (revalidatePath refreshes the underlying Server Component data too).
  */
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 
 import {
   removeWatchlistItemAction,
   reorderWatchlistAction,
 } from "@/app/watchlist/actions";
 import { AddSymbolDialog } from "@/components/watchlist/add-symbol-dialog";
+import { AlertToasts } from "@/components/watchlist/alert-toasts";
 import { WatchlistDetail } from "@/components/watchlist/watchlist-detail";
 import { WatchlistSidebar } from "@/components/watchlist/watchlist-sidebar";
+import { useWatchlistAlerts } from "@/hooks/use-watchlist-alerts";
+import { removeAlertsForTicker } from "@/lib/alerts/storage";
 import type { WatchlistItem } from "@/types/watchlist";
 
 type WatchlistViewProps = {
@@ -32,6 +35,8 @@ export function WatchlistView({ initialItems }: WatchlistViewProps) {
   );
   const [addDialogOpen, setAddDialogOpen] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
+  const tickers = useMemo(() => items.map((item) => item.ticker), [items]);
+  const { toasts, dismissToast } = useWatchlistAlerts(tickers);
 
   function handleSelect(ticker: string) {
     setActiveTicker(ticker);
@@ -61,7 +66,10 @@ export function WatchlistView({ initialItems }: WatchlistViewProps) {
   function handleRemove(id: number) {
     const item = items.find((existing) => existing.id === id);
     setItems((current) => current.filter((existing) => existing.id !== id));
-    if (item) handleCloseTab(item.ticker);
+    if (item) {
+      handleCloseTab(item.ticker);
+      removeAlertsForTicker(item.ticker);
+    }
 
     removeWatchlistItemAction(id).then((result) => {
       if (!result.success) {
@@ -124,6 +132,8 @@ export function WatchlistView({ initialItems }: WatchlistViewProps) {
         onOpenChange={setAddDialogOpen}
         onAdded={handleAdded}
       />
+
+      <AlertToasts toasts={toasts} onDismiss={dismissToast} />
     </div>
   );
 }

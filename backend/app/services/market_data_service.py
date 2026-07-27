@@ -9,8 +9,9 @@ class MarketDataError(Exception):
 
 
 # Maps a chart time range to the (period, interval) yfinance expects.
+# 1D uses 1m so early-session sparklines/charts aren't just two 5m bars.
 RANGE_PARAMS: dict[str, tuple[str, str]] = {
-    "1D": ("1d", "5m"),
+    "1D": ("1d", "1m"),
     "1W": ("5d", "30m"),
     "1M": ("1mo", "1d"),
     "3M": ("3mo", "1d"),
@@ -171,3 +172,64 @@ def get_quote(ticker: str, range_key: str) -> dict:
         "points": points,
         "stats": stats,
     }
+
+
+def get_news(ticker: str, limit: int = 5) -> list[dict]:
+    """
+    Recent headlines for a ticker (Yahoo Finance via yfinance).
+    Returns at most `limit` items, newest first. Missing fields stay None.
+    """
+    ticker = ticker.strip().upper()
+
+    if not ticker:
+        raise ValueError("Ticker cannot be empty.")
+
+    if limit < 1:
+        raise ValueError("limit must be at least 1.")
+
+    stock = yf.Ticker(ticker)
+
+    try:
+        raw_news = stock.news or []
+    except Exception as exc:
+        raise MarketDataError(
+            f"Could not retrieve news for {ticker}."
+        ) from exc
+
+    items: list[dict] = []
+    for entry in raw_news:
+        content = entry.get("content") if isinstance(entry, dict) else None
+        if not isinstance(content, dict):
+            continue
+
+        title = content.get("title")
+        if not title:
+            continue
+
+        provider = content.get("provider") or {}
+        canonical = content.get("canonicalUrl") or {}
+        click_through = content.get("clickThroughUrl") or {}
+        url = None
+        if isinstance(canonical, dict):
+            url = canonical.get("url")
+        if not url and isinstance(click_through, dict):
+            url = click_through.get("url")
+
+        source = None
+        if isinstance(provider, dict):
+            source = provider.get("displayName")
+
+        items.append(
+            {
+                "title": title,
+                "summary": content.get("summary") or content.get("description"),
+                "published_at": content.get("pubDate") or None,
+                "source": source,
+                "url": url,
+            }
+        )
+
+        if len(items) >= limit:
+            break
+
+    return items

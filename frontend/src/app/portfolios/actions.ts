@@ -1,19 +1,27 @@
 "use server";
 
 /**
- * Server Actions for portfolio mutations.
+ * Server Actions for portfolio mutations and trading.
  *
- * Client components (forms, delete buttons) call these functions instead of
- * hitting the API directly. After each mutation we revalidate the page so
- * the Server Component re-fetches fresh holdings data.
+ * Client components call these instead of hitting the API directly.
+ * After each mutation we revalidate dashboard + portfolios pages.
  */
 
 import { revalidatePath } from "next/cache";
 
 import { ApiError } from "@/lib/api/client";
-import { createHolding, deleteHolding } from "@/lib/api/holdings";
+import { deleteHolding } from "@/lib/api/holdings";
 import { getLatestPrice } from "@/lib/api/market-data";
-import type { HoldingCreate } from "@/types/holding";
+import {
+  buyStock,
+  sellStock,
+  transferCash,
+} from "@/lib/api/transactions";
+import type {
+  BuyRequest,
+  SellRequest,
+  TransferRequest,
+} from "@/types/transaction";
 
 type ActionResult = {
   success: boolean;
@@ -26,7 +34,12 @@ type PriceActionResult = {
   error?: string;
 };
 
-/** Look up the latest closing price for a ticker (used to suggest a purchase price). */
+function revalidatePortfolioPaths() {
+  revalidatePath("/portfolios");
+  revalidatePath("/");
+}
+
+/** Look up the latest closing price for a ticker (suggests a trade price). */
 export async function getLatestPriceAction(
   ticker: string,
 ): Promise<PriceActionResult> {
@@ -43,31 +56,72 @@ export async function getLatestPriceAction(
   }
 }
 
-/** Create a holding and refresh the portfolios page. */
-export async function createHoldingAction(
-  input: HoldingCreate,
-): Promise<ActionResult> {
+/** Buy shares (requires sufficient cash). */
+export async function buyStockAction(input: BuyRequest): Promise<ActionResult> {
   try {
-    await createHolding(input);
-    revalidatePath("/portfolios");
-    revalidatePath("/");
+    await buyStock({
+      ...input,
+      ticker: input.ticker.trim().toUpperCase(),
+    });
+    revalidatePortfolioPaths();
     return { success: true };
   } catch (error) {
     const message =
       error instanceof ApiError
         ? error.message
-        : "Something went wrong while saving the holding.";
+        : "Something went wrong while placing the buy.";
 
     return { success: false, error: message };
   }
 }
 
-/** Delete a holding and refresh the portfolios page. */
+/** Sell shares (requires sufficient holdings). */
+export async function sellStockAction(
+  input: SellRequest,
+): Promise<ActionResult> {
+  try {
+    await sellStock({
+      ...input,
+      ticker: input.ticker.trim().toUpperCase(),
+    });
+    revalidatePortfolioPaths();
+    return { success: true };
+  } catch (error) {
+    const message =
+      error instanceof ApiError
+        ? error.message
+        : "Something went wrong while placing the sell.";
+
+    return { success: false, error: message };
+  }
+}
+
+/** Deposit or withdraw cash. */
+export async function transferCashAction(
+  input: TransferRequest,
+): Promise<ActionResult> {
+  try {
+    await transferCash(input);
+    revalidatePortfolioPaths();
+    return { success: true };
+  } catch (error) {
+    const message =
+      error instanceof ApiError
+        ? error.message
+        : "Something went wrong while updating cash.";
+
+    return { success: false, error: message };
+  }
+}
+
+/**
+ * @deprecated Prefer buyStockAction — POST /holdings bypasses cash.
+ * Kept for emergency/debug use only.
+ */
 export async function deleteHoldingAction(id: number): Promise<ActionResult> {
   try {
     await deleteHolding(id);
-    revalidatePath("/portfolios");
-    revalidatePath("/");
+    revalidatePortfolioPaths();
     return { success: true };
   } catch (error) {
     const message =

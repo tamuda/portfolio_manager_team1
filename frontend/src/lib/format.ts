@@ -27,6 +27,20 @@ export function computeCostBasis(quantityAdded: string, purchasePrice: string): 
   return parseFloat(quantityAdded) * parseFloat(purchasePrice);
 }
 
+/** Portfolio return % from total gain/loss and cost basis. */
+export function computePortfolioReturnPercent(
+  totalGainLoss: number,
+  totalCostBasis: number,
+): number | null {
+  if (totalCostBasis <= 0) return null;
+  return (totalGainLoss / totalCostBasis) * 100;
+}
+
+/** Format a percentage for display, e.g. 12.345 → "12.35%" */
+export function formatPercent(value: number): string {
+  return `${Math.abs(value).toFixed(2)}%`;
+}
+
 /** A stats-grid value, or "–" when the data isn't available. */
 export function formatPrice(value: number | null): string {
   return value === null ? "–" : value.toFixed(2);

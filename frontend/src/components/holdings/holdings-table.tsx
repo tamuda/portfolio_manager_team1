@@ -2,10 +2,9 @@
  * Table of portfolio holdings with live performance data from the backend.
  *
  * Data comes from GET /api/v1/holdings/performance (yfinance on the server).
- * Only the Delete button (per row) is a Client Component.
  */
 
-import { DeleteHoldingButton } from "@/components/holdings/delete-holding-button";
+import { HoldingRowActions } from "@/components/holdings/holding-row-actions";
 import {
   Table,
   TableBody,
@@ -97,8 +96,12 @@ export function HoldingsTable({ holdings }: HoldingsTableProps) {
                   </span>
                 </TableCell>
                 <TableCell className="text-right">
-                  {/* TODO (Michaela): replace with <HoldingRowActions holding={holding} /> — see docs/MICHAELA_DEV_TASK_EDIT_HOLDING.md */}
-                  <DeleteHoldingButton holding={holding} />
+                  <HoldingRowActions
+                    ticker={holding.ticker}
+                    quantity={holding.quantity_added}
+                    currentPrice={holding.current_price}
+                    holdingId={holding.id}
+                  />
                 </TableCell>
               </TableRow>
             );

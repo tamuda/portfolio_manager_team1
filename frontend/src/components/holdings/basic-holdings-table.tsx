@@ -3,7 +3,7 @@
  * Falls back from the performance endpoint on 503 errors.
  */
 
-import { DeleteHoldingButton } from "@/components/holdings/delete-holding-button";
+import { HoldingRowActions } from "@/components/holdings/holding-row-actions";
 import {
   Table,
   TableBody,
@@ -69,8 +69,11 @@ export function BasicHoldingsTable({ holdings }: BasicHoldingsTableProps) {
                   {formatCurrency(costBasis)}
                 </TableCell>
                 <TableCell className="text-right">
-                  {/* TODO (Michaela): replace with <HoldingRowActions holding={holding} /> — see docs/MICHAELA_DEV_TASK_EDIT_HOLDING.md */}
-                  <DeleteHoldingButton holding={holding} />
+                  <HoldingRowActions
+                    ticker={holding.ticker}
+                    quantity={holding.quantity_added}
+                    holdingId={holding.id}
+                  />
                 </TableCell>
               </TableRow>
             );
