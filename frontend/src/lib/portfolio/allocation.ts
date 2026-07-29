@@ -4,12 +4,18 @@
 
 import type { HoldingPerformance } from "@/types/holding";
 
+/** Distinct hues so pie slices / bars stay easy to tell apart. */
 export const ALLOCATION_COLORS = [
-  "var(--chart-1)",
-  "var(--chart-2)",
-  "var(--chart-3)",
-  "var(--chart-4)",
-  "var(--chart-5)",
+  "#3b82f6", // blue
+  "#14b8a6", // teal
+  "#f59e0b", // amber
+  "#22c55e", // green
+  "#f97316", // orange
+  "#06b6d4", // cyan
+  "#eab308", // gold
+  "#ef4444", // red
+  "#0ea5e9", // sky
+  "#84cc16", // lime
 ];
 
 export type TickerAllocation = {

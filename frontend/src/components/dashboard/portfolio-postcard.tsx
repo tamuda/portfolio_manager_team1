@@ -57,7 +57,7 @@ type PortfolioPostcardProps = {
   className?: string;
 };
 
-type AllocationRow = { ticker: string; share: number };
+type AllocationRow = { ticker: string; share: number; fill: string };
 
 function formatGeneratedAt() {
   return new Intl.DateTimeFormat("en-US", {
@@ -81,8 +81,19 @@ function buildAllocationRows(
     .reduce((sum, row) => sum + row.share, 0);
 
   return otherShare > 0.05
-    ? [...top, { ticker: "Other", share: otherShare }]
-    : top;
+    ? [
+        ...top.map((row) => ({
+          ticker: row.ticker,
+          share: row.share,
+          fill: row.fill,
+        })),
+        { ticker: "Other", share: otherShare, fill: "#86868b" },
+      ]
+    : top.map((row) => ({
+        ticker: row.ticker,
+        share: row.share,
+        fill: row.fill,
+      }));
 }
 
 function buildMovers(holdings: HoldingPerformance[]) {
@@ -150,13 +161,11 @@ function Footer({
 function AllocationBars({
   rows,
   track,
-  fill,
   label,
   value,
 }: {
   rows: AllocationRow[];
   track: string;
-  fill: string;
   label: string;
   value: string;
 }) {
@@ -186,7 +195,7 @@ function AllocationBars({
               className="h-full rounded-full"
               style={{
                 width: `${Math.min(100, Math.max(0, row.share))}%`,
-                background: fill,
+                background: row.fill,
               }}
             />
           </div>
@@ -314,7 +323,6 @@ function AllocationCard({
           <AllocationBars
             rows={rows}
             track="rgba(0,0,0,0.06)"
-            fill="#1d1d1f"
             label="#1d1d1f"
             value="#6e6e73"
           />

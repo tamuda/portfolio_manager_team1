@@ -16,6 +16,8 @@ import {
 } from "@/components/ui/card";
 import {
   ChartContainer,
+  ChartLegend,
+  ChartLegendContent,
   ChartTooltip,
   ChartTooltipContent,
   type ChartConfig,
@@ -87,6 +89,18 @@ export function PortfolioOverviewCharts({
                 nameKey="ticker"
                 innerRadius={56}
                 strokeWidth={2}
+              >
+                {byTicker.map((entry) => (
+                  <Cell
+                    key={entry.ticker}
+                    fill={entry.fill}
+                    stroke="var(--background)"
+                  />
+                ))}
+              </Pie>
+              <ChartLegend
+                content={<ChartLegendContent nameKey="ticker" />}
+                className="-translate-y-1 flex-wrap gap-2 *:justify-center"
               />
             </PieChart>
           </ChartContainer>
