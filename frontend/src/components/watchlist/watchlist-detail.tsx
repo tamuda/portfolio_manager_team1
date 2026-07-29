@@ -45,13 +45,13 @@ export function WatchlistDetail({
       />
 
       {!activeTicker && (
-        <div className="flex flex-1 items-center justify-center text-sm text-muted-foreground">
+        <div className="flex flex-1 items-center justify-center text-[clamp(0.875rem,0.75rem+0.35vw,1.0625rem)] text-muted-foreground">
           Select a symbol to see its chart.
         </div>
       )}
 
       {activeTicker && error && (
-        <div className="flex flex-1 items-center justify-center px-4 text-center text-sm text-destructive">
+        <div className="flex flex-1 items-center justify-center px-4 text-center text-[clamp(0.875rem,0.75rem+0.35vw,1.0625rem)] text-destructive">
           {error}
         </div>
       )}
@@ -69,7 +69,7 @@ export function WatchlistDetail({
                 range={range}
               />
             ) : (
-              <div className="flex h-[280px] items-center justify-center text-sm text-muted-foreground">
+              <div className="flex h-[clamp(200px,32vh,320px)] items-center justify-center text-[clamp(0.875rem,0.75rem+0.35vw,1.0625rem)] text-muted-foreground">
                 Loading chart…
               </div>
             )}
@@ -82,7 +82,7 @@ export function WatchlistDetail({
               href={`https://finance.yahoo.com/quote/${encodeURIComponent(activeTicker)}`}
               target="_blank"
               rel="noreferrer"
-              className="text-xs text-muted-foreground hover:text-foreground hover:underline"
+              className="text-[clamp(0.75rem,0.65rem+0.3vw,0.9375rem)] text-muted-foreground hover:text-foreground hover:underline"
             >
               See More Data from Yahoo Finance ›
             </a>

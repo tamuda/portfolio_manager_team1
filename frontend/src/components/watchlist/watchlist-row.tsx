@@ -82,7 +82,7 @@ export function WatchlistRow({
         className="flex min-w-0 flex-1 items-center gap-2 text-left"
       >
         <div className="min-w-0 flex-1">
-          <p className="flex items-center gap-1.5 truncate text-sm font-semibold">
+          <p className="flex items-center gap-1.5 truncate text-[clamp(0.875rem,0.75rem+0.35vw,1.0625rem)] font-semibold">
             {item.ticker}
             {hasAlert && (
               <span
@@ -94,7 +94,7 @@ export function WatchlistRow({
               />
             )}
           </p>
-          <p className="truncate text-xs text-muted-foreground">
+          <p className="truncate text-[clamp(0.75rem,0.65rem+0.3vw,0.9375rem)] text-muted-foreground">
             {quote?.name ?? " "}
           </p>
         </div>
@@ -104,13 +104,13 @@ export function WatchlistRow({
         )}
 
         <div className="flex w-16 shrink-0 flex-col items-end gap-1">
-          <span className="text-sm font-semibold tabular-nums">
+          <span className="text-[clamp(0.875rem,0.75rem+0.35vw,1.0625rem)] font-semibold tabular-nums">
             {quote ? quote.price.toFixed(2) : "—"}
           </span>
           {quote && (
             <span
               className={cn(
-                "rounded px-1.5 py-0.5 text-xs font-medium tabular-nums",
+                "rounded px-1.5 py-0.5 text-[clamp(0.75rem,0.65rem+0.3vw,0.9375rem)] font-medium tabular-nums",
                 getChangePillClasses(quote.change),
               )}
             >

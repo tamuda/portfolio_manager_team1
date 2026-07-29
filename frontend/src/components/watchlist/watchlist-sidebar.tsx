@@ -74,7 +74,7 @@ export function WatchlistSidebar({
   }
 
   return (
-    <div className="flex h-full w-72 shrink-0 flex-col border-r">
+    <div className="flex h-full w-[clamp(15rem,18vw,18rem)] shrink-0 flex-col border-r">
       <div className="p-3">
         <div className="relative">
           <SearchIcon
@@ -92,7 +92,7 @@ export function WatchlistSidebar({
       </div>
 
       <div className="flex items-center justify-between px-3 pb-1">
-        <span className="text-xs font-semibold text-muted-foreground">
+        <span className="text-[clamp(0.75rem,0.65rem+0.3vw,0.9375rem)] font-semibold text-muted-foreground">
           My Symbols
         </span>
         <DropdownMenu>
@@ -134,7 +134,7 @@ export function WatchlistSidebar({
         ))}
 
         {visibleItems.length === 0 && (
-          <li className="px-2 py-6 text-center text-sm text-muted-foreground">
+          <li className="px-2 py-6 text-center text-[clamp(0.875rem,0.75rem+0.35vw,1.0625rem)] text-muted-foreground">
             {query ? "No matching symbols." : "Your watchlist is empty."}
           </li>
         )}

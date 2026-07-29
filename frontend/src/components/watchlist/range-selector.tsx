@@ -18,7 +18,7 @@ export function RangeSelector({ value, onChange }: RangeSelectorProps) {
           onClick={() => onChange(range)}
           aria-pressed={value === range}
           className={cn(
-            "rounded-md px-2 py-1 text-xs font-medium transition-colors",
+            "rounded-md px-2 py-1 text-[clamp(0.75rem,0.65rem+0.3vw,0.9375rem)] font-medium transition-colors",
             value === range
               ? "bg-muted text-foreground"
               : "text-muted-foreground hover:text-foreground",

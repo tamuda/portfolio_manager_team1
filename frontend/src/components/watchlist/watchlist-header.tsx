@@ -25,12 +25,16 @@ export function WatchlistHeader({ ticker, quote }: WatchlistHeaderProps) {
     <div className="flex flex-wrap items-start justify-between gap-4 px-4 py-4">
       <div>
         <div className="flex items-baseline gap-2">
-          <h1 className="text-2xl font-bold tracking-tight">{ticker}</h1>
+          <h1 className="text-[clamp(1.5rem,1.15rem+1vw,2rem)] font-bold tracking-tight">
+            {ticker}
+          </h1>
           {quote?.name && (
-            <span className="text-lg text-muted-foreground">{quote.name}</span>
+            <span className="text-[clamp(1.125rem,0.95rem+0.5vw,1.375rem)] text-muted-foreground">
+              {quote.name}
+            </span>
           )}
         </div>
-        <p className="mt-0.5 text-xs text-muted-foreground">
+        <p className="mt-0.5 text-[clamp(0.75rem,0.65rem+0.3vw,0.9375rem)] text-muted-foreground">
           {quote
             ? [quote.exchange, quote.currency].filter(Boolean).join(" · ") || " "
             : " "}
@@ -54,12 +58,12 @@ export function WatchlistHeader({ ticker, quote }: WatchlistHeaderProps) {
         </Button>
 
         <div className="text-right">
-          <p className="text-2xl font-bold tabular-nums">
+          <p className="text-[clamp(1.5rem,1.15rem+1vw,2rem)] font-bold tabular-nums">
             {quote ? quote.price.toFixed(2) : "—"}
           </p>
           <p
             className={cn(
-              "text-sm font-medium tabular-nums",
+              "text-[clamp(0.875rem,0.75rem+0.35vw,1.0625rem)] font-medium tabular-nums",
               quote ? getChangeTextColor(quote.change) : "text-muted-foreground",
             )}
           >

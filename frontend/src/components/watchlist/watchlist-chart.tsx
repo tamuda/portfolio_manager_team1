@@ -6,6 +6,7 @@
  * cursor, styled by the shared ChartContainer rules in ui/chart.tsx).
  */
 
+import { useEffect, useRef, useState } from "react";
 import { Area, AreaChart, CartesianGrid, XAxis, YAxis } from "recharts";
 
 import {
@@ -38,7 +39,17 @@ function formatTick(timestamp: string, range: TimeRange): string {
   });
 }
 
-const TICK_COUNT = 6;
+const MIN_TICKS = 4;
+const MAX_TICKS = 14;
+const PX_PER_TICK = 110;
+
+/** More horizontal room means labels can be spaced further apart without
+ * crowding, so a wider chart gets more date labels instead of the same
+ * fixed count stretched across extra space. */
+function computeTickCount(width: number): number {
+  if (width <= 0) return 6;
+  return Math.min(MAX_TICKS, Math.max(MIN_TICKS, Math.round(width / PX_PER_TICK)));
+}
 
 /**
  * Recharts' own interval/minTickGap heuristics force-anchor the last tick
@@ -47,13 +58,13 @@ const TICK_COUNT = 6;
  * uneven. Picking a fixed, evenly index-spaced set of timestamps up front
  * keeps every gap equal regardless of range or dataset size.
  */
-function computeAxisTicks(points: PricePoint[]): string[] {
-  if (points.length <= TICK_COUNT) {
+function computeAxisTicks(points: PricePoint[], tickCount: number): string[] {
+  if (points.length <= tickCount) {
     return points.map((point) => point.timestamp);
   }
 
-  const step = (points.length - 1) / (TICK_COUNT - 1);
-  return Array.from({ length: TICK_COUNT }, (_, i) => {
+  const step = (points.length - 1) / (tickCount - 1);
+  return Array.from({ length: tickCount }, (_, i) => {
     const index = Math.round(i * step);
     return points[index].timestamp;
   });
@@ -64,6 +75,23 @@ export function WatchlistChart({ points, change, range }: WatchlistChartProps) {
   const prices = points.map((point) => point.close);
   const padding = (Math.max(...prices) - Math.min(...prices)) * 0.1 || 1;
 
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [containerWidth, setContainerWidth] = useState(0);
+
+  useEffect(() => {
+    const node = containerRef.current;
+    if (!node) return;
+
+    const observer = new ResizeObserver((entries) => {
+      const entry = entries[0];
+      if (entry) setContainerWidth(entry.contentRect.width);
+    });
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, []);
+
+  const tickCount = computeTickCount(containerWidth);
+
   // Weekly/monthly bars (1Y+) are timestamped at the start of their period —
   // the last bar is still in progress, so its raw timestamp can read weeks
   // behind today even though it holds the latest price. Since that point
@@ -72,59 +100,64 @@ export function WatchlistChart({ points, change, range }: WatchlistChartProps) {
   const todayIso = new Date().toISOString();
 
   return (
-    <ChartContainer config={{}} className="aspect-auto h-[280px] w-full">
-      <AreaChart data={points} margin={{ top: 8, right: 12, bottom: 0, left: 0 }}>
-        <defs>
-          <linearGradient id="watchlist-chart-fill" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="5%" stopColor={color} stopOpacity={0.3} />
-            <stop offset="95%" stopColor={color} stopOpacity={0} />
-          </linearGradient>
-        </defs>
-        <CartesianGrid vertical={false} strokeDasharray="3 3" />
-        <XAxis
-          dataKey="timestamp"
-          tickLine={false}
-          axisLine={false}
-          tickFormatter={(value: string) =>
-            formatTick(value === lastTimestamp ? todayIso : value, range)
-          }
-          ticks={computeAxisTicks(points)}
-          interval={0}
-          padding={{ left: 48, right: 16 }}
-        />
-        <YAxis
-          orientation="right"
-          domain={[
-            (dataMin: number) => dataMin - padding,
-            (dataMax: number) => dataMax + padding,
-          ]}
-          tickLine={false}
-          axisLine={false}
-          tickFormatter={(value: number) => value.toFixed(0)}
-          width={48}
-        />
-        <ChartTooltip
-          cursor
-          content={
-            <ChartTooltipContent
-              hideLabel
-              formatter={(value) => (
-                <span className="font-mono font-medium tabular-nums">
-                  {Number(value).toFixed(2)}
-                </span>
-              )}
-            />
-          }
-        />
-        <Area
-          type="monotone"
-          dataKey="close"
-          stroke={color}
-          strokeWidth={1.5}
-          fill="url(#watchlist-chart-fill)"
-          isAnimationActive={false}
-        />
-      </AreaChart>
-    </ChartContainer>
+    <div ref={containerRef} className="w-full">
+      <ChartContainer
+        config={{}}
+        className="aspect-auto h-[clamp(200px,32vh,320px)] w-full"
+      >
+        <AreaChart data={points} margin={{ top: 8, right: 12, bottom: 0, left: 0 }}>
+          <defs>
+            <linearGradient id="watchlist-chart-fill" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="5%" stopColor={color} stopOpacity={0.3} />
+              <stop offset="95%" stopColor={color} stopOpacity={0} />
+            </linearGradient>
+          </defs>
+          <CartesianGrid vertical={false} strokeDasharray="3 3" />
+          <XAxis
+            dataKey="timestamp"
+            tickLine={false}
+            axisLine={false}
+            tickFormatter={(value: string) =>
+              formatTick(value === lastTimestamp ? todayIso : value, range)
+            }
+            ticks={computeAxisTicks(points, tickCount)}
+            interval={0}
+            padding={{ left: 48, right: 16 }}
+          />
+          <YAxis
+            orientation="right"
+            domain={[
+              (dataMin: number) => dataMin - padding,
+              (dataMax: number) => dataMax + padding,
+            ]}
+            tickLine={false}
+            axisLine={false}
+            tickFormatter={(value: number) => value.toFixed(0)}
+            width={48}
+          />
+          <ChartTooltip
+            cursor
+            content={
+              <ChartTooltipContent
+                hideLabel
+                formatter={(value) => (
+                  <span className="font-mono font-medium tabular-nums">
+                    {Number(value).toFixed(2)}
+                  </span>
+                )}
+              />
+            }
+          />
+          <Area
+            type="monotone"
+            dataKey="close"
+            stroke={color}
+            strokeWidth={1.5}
+            fill="url(#watchlist-chart-fill)"
+            isAnimationActive={false}
+          />
+        </AreaChart>
+      </ChartContainer>
+    </div>
   );
 }

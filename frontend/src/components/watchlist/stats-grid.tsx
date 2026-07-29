@@ -9,7 +9,7 @@ function StatColumn({ rows }: { rows: StatRow[] }) {
       {rows.map((row) => (
         <div
           key={row.label}
-          className="flex items-baseline justify-between gap-4 text-sm"
+          className="flex items-baseline justify-between gap-4 text-[clamp(0.875rem,0.75rem+0.35vw,1.0625rem)]"
         >
           <span className="text-muted-foreground">{row.label}</span>
           <span className="font-medium tabular-nums">{row.value}</span>

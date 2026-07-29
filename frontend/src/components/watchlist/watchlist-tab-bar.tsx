@@ -43,7 +43,7 @@ export function WatchlistTabBar({
             <div
               key={ticker}
               className={cn(
-                "group/tab flex shrink-0 items-center gap-1 rounded-md px-2.5 py-1 text-sm font-medium transition-colors",
+                "group/tab flex shrink-0 items-center gap-1 rounded-md px-2.5 py-1 text-[clamp(0.875rem,0.75rem+0.35vw,1.0625rem)] font-medium transition-colors",
                 isActive
                   ? "bg-background text-foreground shadow-sm ring-1 ring-border"
                   : "text-muted-foreground hover:bg-muted/60",
