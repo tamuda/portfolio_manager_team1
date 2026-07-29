@@ -5,10 +5,16 @@
  *   GET /market-data/price/:ticker → latest closing price for a ticker
  *   GET /market-data/quote/:ticker → price, change, chart series & stats
  *   GET /market-data/news/:ticker  → recent headlines for a ticker
+ *   GET /market-data/search        → ticker/company name autosuggest
  */
 
 import { apiFetch } from "@/lib/api/client";
-import type { NewsResponse, Quote, TimeRange } from "@/types/market-data";
+import type {
+  NewsResponse,
+  Quote,
+  SymbolSearchResponse,
+  TimeRange,
+} from "@/types/market-data";
 
 type PriceResponse = {
   ticker: string;
@@ -39,5 +45,15 @@ export async function getNews(
 ): Promise<NewsResponse> {
   return apiFetch<NewsResponse>(
     `/market-data/news/${encodeURIComponent(ticker)}?limit=${limit}`,
+  );
+}
+
+/** Suggest tickers/company names matching a partial query as the user types. */
+export async function searchSymbols(
+  query: string,
+  limit = 8,
+): Promise<SymbolSearchResponse> {
+  return apiFetch<SymbolSearchResponse>(
+    `/market-data/search?q=${encodeURIComponent(query)}&limit=${limit}`,
   );
 }

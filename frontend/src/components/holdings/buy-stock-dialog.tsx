@@ -10,7 +10,11 @@
 import { useEffect, useMemo, useState, useTransition } from "react";
 import { PlusIcon } from "lucide-react";
 
-import { buyStockAction, getLatestPriceAction } from "@/app/portfolios/actions";
+import {
+  buyStockAction,
+  getLatestPriceAction,
+  searchSymbolsAction,
+} from "@/app/portfolios/actions";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -23,6 +27,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { TickerAutocomplete } from "@/components/ticker-autocomplete";
 import { formatCurrency } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
@@ -237,14 +242,15 @@ export function BuyStockDialog({
         <form id="buy-stock-form" onSubmit={handleSubmit} className="grid gap-4">
           <div className="grid gap-2">
             <Label htmlFor="buy-ticker">Ticker</Label>
-            <Input
+            <TickerAutocomplete
               id="buy-ticker"
-              placeholder="AAPL"
               value={ticker}
-              onChange={(event) => setTicker(event.target.value)}
+              onChange={setTicker}
+              onSelect={(suggestion) => setTicker(suggestion.symbol)}
+              search={searchSymbolsAction}
+              placeholder="AAPL"
               required
               maxLength={20}
-              autoComplete="off"
             />
             {isPricePending && (
               <p className="text-xs text-muted-foreground">

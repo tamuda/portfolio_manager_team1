@@ -1,12 +1,18 @@
 from fastapi import APIRouter, HTTPException, Query, status
 
-from app.schemas.market_data import NewsResponse, PriceResponse, QuoteResponse
+from app.schemas.market_data import (
+    NewsResponse,
+    PriceResponse,
+    QuoteResponse,
+    SymbolSearchResponse,
+)
 from app.services.market_data_service import (
     MarketDataError,
     get_latest_price,
     get_news,
     get_quote,
 )
+from app.services.symbol_search_service import search_symbols
 
 router = APIRouter(
     prefix="/market-data",
@@ -30,6 +36,15 @@ def get_price(ticker: str) -> PriceResponse:
         ) from exc
 
     return PriceResponse(ticker=ticker.strip().upper(), price=price)
+
+
+@router.get("/search", response_model=SymbolSearchResponse)
+def search_symbols_route(
+    q: str = Query(default=""),
+    limit: int = Query(default=8, ge=1, le=20),
+) -> SymbolSearchResponse:
+    results = search_symbols(q, limit=limit)
+    return SymbolSearchResponse(query=q.strip().upper(), results=results)
 
 
 @router.get("/quote/{ticker}", response_model=QuoteResponse)

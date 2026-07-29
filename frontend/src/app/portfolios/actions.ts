@@ -11,12 +11,13 @@ import { revalidatePath } from "next/cache";
 
 import { ApiError } from "@/lib/api/client";
 import { deleteHolding } from "@/lib/api/holdings";
-import { getLatestPrice } from "@/lib/api/market-data";
+import { getLatestPrice, searchSymbols } from "@/lib/api/market-data";
 import {
   buyStock,
   sellStock,
   transferCash,
 } from "@/lib/api/transactions";
+import type { SymbolSuggestion } from "@/types/market-data";
 import type {
   BuyRequest,
   SellRequest,
@@ -32,6 +33,10 @@ type PriceActionResult = {
   success: boolean;
   price?: string;
   error?: string;
+};
+
+type SymbolSearchActionResult = ActionResult & {
+  results?: SymbolSuggestion[];
 };
 
 function revalidatePortfolioPaths() {
@@ -51,6 +56,23 @@ export async function getLatestPriceAction(
       error instanceof ApiError
         ? error.message
         : "Something went wrong while fetching the latest price.";
+
+    return { success: false, error: message };
+  }
+}
+
+/** Suggest tickers/company names matching a partial query as the user types. */
+export async function searchSymbolsAction(
+  query: string,
+): Promise<SymbolSearchActionResult> {
+  try {
+    const { results } = await searchSymbols(query);
+    return { success: true, results };
+  } catch (error) {
+    const message =
+      error instanceof ApiError
+        ? error.message
+        : "Something went wrong while searching symbols.";
 
     return { success: false, error: message };
   }

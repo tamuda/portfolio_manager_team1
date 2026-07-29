@@ -66,3 +66,15 @@ export type NewsResponse = {
   ticker: string;
   items: NewsItem[];
 };
+
+/** Single match from GET /market-data/search */
+export type SymbolSuggestion = {
+  symbol: string;
+  name: string;
+};
+
+/** Response shape for GET /market-data/search */
+export type SymbolSearchResponse = {
+  query: string;
+  results: SymbolSuggestion[];
+};

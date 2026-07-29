@@ -11,14 +11,14 @@
 import { revalidatePath } from "next/cache";
 
 import { ApiError } from "@/lib/api/client";
-import { getQuote } from "@/lib/api/market-data";
+import { getQuote, searchSymbols } from "@/lib/api/market-data";
 import {
   addWatchlistItem,
   deleteWatchlistItem,
   reorderWatchlist,
 } from "@/lib/api/watchlist";
 import type { TimeRange } from "@/types/market-data";
-import type { Quote } from "@/types/market-data";
+import type { Quote, SymbolSuggestion } from "@/types/market-data";
 import type { WatchlistItem } from "@/types/watchlist";
 
 type ActionResult = {
@@ -34,6 +34,10 @@ type WatchlistItemActionResult = ActionResult & {
   item?: WatchlistItem;
 };
 
+type SymbolSearchActionResult = ActionResult & {
+  results?: SymbolSuggestion[];
+};
+
 /** Fetch a quote for the detail pane / sidebar sparkline. */
 export async function getQuoteAction(
   ticker: string,
@@ -47,6 +51,23 @@ export async function getQuoteAction(
       error instanceof ApiError
         ? error.message
         : "Something went wrong while fetching market data.";
+
+    return { success: false, error: message };
+  }
+}
+
+/** Suggest tickers/company names matching a partial query as the user types. */
+export async function searchSymbolsAction(
+  query: string,
+): Promise<SymbolSearchActionResult> {
+  try {
+    const { results } = await searchSymbols(query);
+    return { success: true, results };
+  } catch (error) {
+    const message =
+      error instanceof ApiError
+        ? error.message
+        : "Something went wrong while searching symbols.";
 
     return { success: false, error: message };
   }

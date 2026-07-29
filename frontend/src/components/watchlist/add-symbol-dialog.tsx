@@ -10,7 +10,11 @@
 
 import { useEffect, useState, useTransition } from "react";
 
-import { addWatchlistItemAction, getQuoteAction } from "@/app/watchlist/actions";
+import {
+  addWatchlistItemAction,
+  getQuoteAction,
+  searchSymbolsAction,
+} from "@/app/watchlist/actions";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -20,8 +24,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { TickerAutocomplete } from "@/components/ticker-autocomplete";
 
 type AddSymbolDialogProps = {
   open: boolean;
@@ -122,14 +126,15 @@ export function AddSymbolDialog({
           className="grid gap-2"
         >
           <Label htmlFor="watchlist-ticker">Ticker</Label>
-          <Input
+          <TickerAutocomplete
             id="watchlist-ticker"
-            placeholder="AAPL"
             value={ticker}
-            onChange={(event) => setTicker(event.target.value)}
+            onChange={setTicker}
+            onSelect={(suggestion) => setTicker(suggestion.symbol)}
+            search={searchSymbolsAction}
+            placeholder="AAPL"
             required
             maxLength={20}
-            autoComplete="off"
             autoFocus
           />
 

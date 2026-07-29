@@ -47,3 +47,13 @@ class NewsItem(BaseModel):
 class NewsResponse(BaseModel):
     ticker: str
     items: list[NewsItem]
+
+
+class SymbolSuggestion(BaseModel):
+    symbol: str
+    name: str
+
+
+class SymbolSearchResponse(BaseModel):
+    query: str
+    results: list[SymbolSuggestion]
