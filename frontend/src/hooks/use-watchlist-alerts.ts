@@ -7,6 +7,7 @@
 import { useCallback, useEffect, useState } from "react";
 
 import { getQuoteAction } from "@/app/watchlist/actions";
+import { usePolling } from "@/hooks/use-polling";
 import {
   formatAlertRule,
   getBrowserNotifyEnabled,
@@ -14,9 +15,8 @@ import {
   markAlertTriggered,
   type WatchlistAlert,
 } from "@/lib/alerts/storage";
+import { PRICE_POLL_MS } from "@/lib/live-prices";
 import type { Quote } from "@/types/market-data";
-
-const POLL_MS = 60_000;
 
 export type AlertToast = {
   id: string;
@@ -105,11 +105,11 @@ export function useWatchlistAlerts(tickers: string[]) {
 
   useEffect(() => {
     void evaluate();
-    const timer = window.setInterval(() => {
-      void evaluate();
-    }, POLL_MS);
-    return () => window.clearInterval(timer);
   }, [evaluate]);
+
+  usePolling(() => {
+    void evaluate();
+  }, PRICE_POLL_MS);
 
   return { alerts, toasts, dismissToast, refresh };
 }

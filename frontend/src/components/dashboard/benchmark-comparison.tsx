@@ -18,6 +18,8 @@ import {
 } from "@/components/ui/card";
 import {
   ChartContainer,
+  ChartLegend,
+  ChartLegendContent,
   ChartTooltip,
   ChartTooltipContent,
   type ChartConfig,
@@ -199,68 +201,79 @@ export function BenchmarkComparison({ holdings }: BenchmarkComparisonProps) {
         )}
 
         {!isLoading && !error && result && result.points.length >= 2 && (
-          <ChartContainer
-            config={chartConfig}
-            className="aspect-auto h-70 w-full"
-          >
-            <LineChart
-              data={result.points}
-              margin={{ top: 8, right: 12, left: 0, bottom: 0 }}
+          <div className="space-y-2">
+            <ChartContainer
+              config={chartConfig}
+              className="aspect-auto h-[280px] w-full"
             >
-              <CartesianGrid vertical={false} strokeDasharray="3 3" />
-              <XAxis
-                dataKey="label"
-                tickLine={false}
-                axisLine={false}
-                minTickGap={28}
-              />
-              <YAxis
-                tickLine={false}
-                axisLine={false}
-                width={40}
-                domain={["auto", "auto"]}
-                tickFormatter={(value: number) => value.toFixed(0)}
-              />
-              <ChartTooltip
-                content={
-                  <ChartTooltipContent
-                    labelFormatter={(_, payload) => {
-                      const point = payload?.[0]?.payload as
-                        | { date?: string }
-                        | undefined;
-                      return point?.date ?? "";
-                    }}
-                    formatter={(value, name) => {
-                      const label =
-                        name === "portfolio" ? "Portfolio" : BENCHMARK;
-                      return (
-                        <span className="font-medium tabular-nums">
-                          {label}: {Number(value).toFixed(2)}
-                        </span>
-                      );
-                    }}
-                  />
-                }
-              />
-              <Line
-                type="monotone"
-                dataKey="portfolio"
-                stroke="var(--color-portfolio)"
-                strokeWidth={2}
-                dot={false}
-                activeDot={{ r: 3 }}
-              />
-              <Line
-                type="monotone"
-                dataKey="benchmark"
-                stroke="var(--color-benchmark)"
-                strokeWidth={2}
-                strokeDasharray="4 4"
-                dot={false}
-                activeDot={{ r: 3 }}
-              />
-            </LineChart>
-          </ChartContainer>
+              <LineChart
+                data={result.points}
+                margin={{ top: 8, right: 12, left: 0, bottom: 0 }}
+              >
+                <CartesianGrid vertical={false} strokeDasharray="3 3" />
+                <XAxis
+                  dataKey="label"
+                  tickLine={false}
+                  axisLine={false}
+                  minTickGap={28}
+                />
+                <YAxis
+                  tickLine={false}
+                  axisLine={false}
+                  width={40}
+                  domain={["auto", "auto"]}
+                  tickFormatter={(value: number) => value.toFixed(0)}
+                />
+                <ChartTooltip
+                  content={
+                    <ChartTooltipContent
+                      labelFormatter={(_, payload) => {
+                        const point = payload?.[0]?.payload as
+                          | { date?: string }
+                          | undefined;
+                        return point?.date ?? "";
+                      }}
+                      formatter={(value, name) => {
+                        const label =
+                          name === "portfolio" ? "Portfolio" : BENCHMARK;
+                        return (
+                          <span className="font-medium tabular-nums">
+                            {label}: {Number(value).toFixed(2)}
+                          </span>
+                        );
+                      }}
+                    />
+                  }
+                />
+                <Line
+                  type="monotone"
+                  dataKey="portfolio"
+                  name="portfolio"
+                  stroke="#2563eb"
+                  strokeWidth={2.5}
+                  dot={false}
+                  activeDot={{ r: 3 }}
+                  isAnimationActive={false}
+                />
+                <Line
+                  type="monotone"
+                  dataKey="benchmark"
+                  name="benchmark"
+                  stroke="#64748b"
+                  strokeWidth={2.5}
+                  strokeDasharray="4 4"
+                  dot={false}
+                  activeDot={{ r: 3 }}
+                  isAnimationActive={false}
+                />
+                <ChartLegend content={<ChartLegendContent />} />
+              </LineChart>
+            </ChartContainer>
+            <p className="text-xs text-muted-foreground">
+              Uses your current holdings for the whole range — not when you
+              actually bought them.
+            </p>
+          </div>
         )}
 
         {result && result.missingTickers.length > 0 && !isLoading && (
