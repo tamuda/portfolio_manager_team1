@@ -25,5 +25,8 @@ class Settings(BaseSettings):
     # MySQL connection string, e.g. mysql+pymysql://user:password@localhost:3306/portfolio
     database_url: str = "mysql+pymysql://root:password@localhost:3306/portfolio"
 
+    # API key for the St. Louis Fed's FRED API (used to fetch Treasury yield curve data).
+    fred_api_key: str | None = None
+
 
 settings = Settings()
