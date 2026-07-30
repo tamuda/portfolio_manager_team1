@@ -4,7 +4,6 @@ import { HoldingsEmptyState } from "@/components/holdings/holdings-empty-state";
 import { HoldingsErrorState } from "@/components/holdings/holdings-error-state";
 import { HoldingsTable } from "@/components/holdings/holdings-table";
 import { TransactionsActivity } from "@/components/holdings/transactions-activity";
-import { LivePriceRefresh } from "@/components/live-price-refresh";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { getAccount } from "@/lib/api/account";
 import { ApiError } from "@/lib/api/client";
@@ -56,7 +55,6 @@ export default async function PortfoliosPage() {
 
   return (
     <div className="mx-auto flex max-w-6xl flex-1 flex-col px-4 py-10">
-      {!errorMessage && <LivePriceRefresh />}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">Portfolios</h1>

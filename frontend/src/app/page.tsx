@@ -7,9 +7,8 @@ import { PortfolioOverviewCharts } from "@/components/dashboard/portfolio-overvi
 import { ShareSnapshotDialog } from "@/components/dashboard/share-snapshot-dialog";
 import { TrendSignal } from "@/components/dashboard/trend-signal";
 import { WatchlistPreview } from "@/components/dashboard/watchlist-preview";
-import { HoldingsErrorState } from "@/components/holdings/holdings-error-state";
-import { LivePriceRefresh } from "@/components/live-price-refresh";
 import { DashboardAlertMonitor } from "@/components/watchlist/dashboard-alert-monitor";
+import { HoldingsErrorState } from "@/components/holdings/holdings-error-state";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { buttonVariants } from "@/components/ui/button";
 import { getAccount } from "@/lib/api/account";
@@ -106,7 +105,6 @@ export default async function Home() {
 
   return (
     <div className="mx-auto flex max-w-6xl flex-1 flex-col px-4 py-10">
-      {!errorMessage && <LivePriceRefresh />}
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">Dashboard</h1>
