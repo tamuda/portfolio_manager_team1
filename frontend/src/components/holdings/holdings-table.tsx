@@ -19,6 +19,7 @@ import { cn } from "@/lib/utils";
 
 type HoldingsTableProps = {
   holdings: HoldingPerformance[];
+  className?: string;
 };
 
 function formatPercent(value: string | null): string {
@@ -28,7 +29,7 @@ function formatPercent(value: string | null): string {
   return `${sign}${num.toFixed(2)}%`;
 }
 
-export function HoldingsTable({ holdings }: HoldingsTableProps) {
+export function HoldingsTable({ holdings, className }: HoldingsTableProps) {
   const totalCostBasis = holdings.reduce(
     (sum, h) => sum + parseFloat(h.cost_basis),
     0,
@@ -40,7 +41,7 @@ export function HoldingsTable({ holdings }: HoldingsTableProps) {
   const totalGainLoss = totalMarketValue - totalCostBasis;
 
   return (
-    <div className="mt-8 rounded-xl border">
+    <div className={cn("mt-8 rounded-xl border", className)}>
       <Table>
         <TableHeader>
           <TableRow>
@@ -100,7 +101,6 @@ export function HoldingsTable({ holdings }: HoldingsTableProps) {
                     ticker={holding.ticker}
                     quantity={holding.quantity_added}
                     currentPrice={holding.current_price}
-                    holdingId={holding.id}
                   />
                 </TableCell>
               </TableRow>

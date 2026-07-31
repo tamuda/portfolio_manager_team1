@@ -7,74 +7,55 @@ import { PortfolioOverviewCharts } from "@/components/dashboard/portfolio-overvi
 import { ShareSnapshotDialog } from "@/components/dashboard/share-snapshot-dialog";
 import { TrendSignal } from "@/components/dashboard/trend-signal";
 import { WatchlistPreview } from "@/components/dashboard/watchlist-preview";
-import { DashboardAlertMonitor } from "@/components/watchlist/dashboard-alert-monitor";
 import { HoldingsErrorState } from "@/components/holdings/holdings-error-state";
+import { DashboardAlertMonitor } from "@/components/watchlist/dashboard-alert-monitor";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { buttonVariants } from "@/components/ui/button";
-import { getAccount } from "@/lib/api/account";
 import { ApiError } from "@/lib/api/client";
-import {
-  getHoldings,
-  getHoldingsPerformance,
-  getPortfolioSummary,
-} from "@/lib/api/holdings";
+import { getHoldingsPerformance } from "@/lib/api/holdings";
 import { getQuote } from "@/lib/api/market-data";
+import { getCombinedPortfolioSummary } from "@/lib/api/portfolio";
+import { listTreasuries } from "@/lib/api/treasury";
 import { getWatchlist } from "@/lib/api/watchlist";
-import {
-  computeCostBasis,
-  formatCurrency,
-  formatPercent,
-} from "@/lib/format";
+import { formatCurrency, formatPercent } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import type { SnapshotWatchlistRow } from "@/components/dashboard/portfolio-postcard";
 import type { HoldingPerformance } from "@/types/holding";
+import type { CombinedPortfolioSummary } from "@/types/portfolio";
 
 /**
- * Dashboard — high-level portfolio overview.
- * Uses performance + summary when available; falls back to cost basis only.
- * Cash starts at $0 until a deposit via Portfolios.
+ * Dashboard — high-level portfolio overview across stocks and Treasuries.
  */
 export default async function Home() {
-  let holdingCount = 0;
-  let totalCostBasis = 0;
-  let totalMarketValue: number | null = null;
-  let totalGainLoss: number | null = null;
-  let portfolioReturn: number | null = null;
-  let cashBalance: number | null = null;
+  let summary: CombinedPortfolioSummary | null = null;
   let performance: HoldingPerformance[] | null = null;
+  let treasuryCount = 0;
   let snapshotWatchlist: SnapshotWatchlistRow[] = [];
   let errorMessage: string | null = null;
   let priceWarning: string | null = null;
 
   try {
-    const [holdings, account] = await Promise.all([
-      getHoldings(),
-      getAccount(),
-    ]);
-    holdingCount = holdings.length;
-    cashBalance = parseFloat(account.cash_balance);
-    totalCostBasis = holdings.reduce(
-      (sum, h) => sum + computeCostBasis(h.quantity_added, h.purchase_price),
-      0,
-    );
+    summary = await getCombinedPortfolioSummary();
+    treasuryCount = summary.treasuries.count;
 
-    if (holdings.length > 0) {
+    if (summary.stocks.count > 0) {
       try {
-        const [performanceData, summary] = await Promise.all([
-          getHoldingsPerformance(),
-          getPortfolioSummary(),
-        ]);
-        performance = performanceData;
-        totalCostBasis = parseFloat(summary.total_cost_basis);
-        totalMarketValue = parseFloat(summary.total_market_value);
-        totalGainLoss = parseFloat(summary.total_gain_loss);
-        portfolioReturn = parseFloat(summary.portfolio_return_percentage);
+        performance = await getHoldingsPerformance();
       } catch (error) {
         priceWarning =
           error instanceof ApiError
             ? error.message
-            : "Live prices are temporarily unavailable. Showing cost basis only.";
+            : "Live stock prices are temporarily unavailable.";
       }
+    }
+
+    // Keep treasury count accurate even if summary used cost-only fallback
+    // after a partial failure path (list is cheap).
+    try {
+      const lots = await listTreasuries();
+      treasuryCount = lots.length;
+    } catch {
+      // ignore — summary count is enough
     }
 
     try {
@@ -101,6 +82,24 @@ export default async function Home() {
         : "Could not reach the backend. Is it running on port 8000?";
   }
 
+  const stockCount = summary?.stocks.count ?? 0;
+  const holdingCount = stockCount + treasuryCount;
+  const cashBalance = summary ? parseFloat(summary.cash_balance) : null;
+  const totalCostBasis = summary ? parseFloat(summary.total_cost_basis) : 0;
+  const totalMarketValue = summary
+    ? parseFloat(summary.total_market_value)
+    : null;
+  const totalGainLoss = summary ? parseFloat(summary.total_gain_loss) : null;
+  const portfolioReturn = summary
+    ? parseFloat(summary.portfolio_return_percentage)
+    : null;
+  const stocksMarketValue = summary
+    ? parseFloat(summary.stocks.total_market_value)
+    : 0;
+  const treasuriesMarketValue = summary
+    ? parseFloat(summary.treasuries.total_market_value)
+    : 0;
+
   const isEmpty = !errorMessage && holdingCount === 0;
 
   return (
@@ -117,7 +116,9 @@ export default async function Home() {
             {performance && performance.length > 0 && (
               <ShareSnapshotDialog
                 holdings={performance}
-                portfolioReturn={portfolioReturn}
+                portfolioReturn={
+                  summary ? parseFloat(summary.stocks.portfolio_return_percentage) : portfolioReturn
+                }
                 watchlist={snapshotWatchlist}
               />
             )}
@@ -129,7 +130,7 @@ export default async function Home() {
       {!errorMessage && (
         <div className="mt-6">
           <Link href="/portfolios" className={cn(buttonVariants())}>
-            {isEmpty ? "Deposit & buy stocks" : "Manage holdings"}
+            {isEmpty ? "Deposit & buy assets" : "Manage holdings"}
           </Link>
         </div>
       )}
@@ -157,6 +158,9 @@ export default async function Home() {
             <p className="mt-1 truncate text-2xl font-semibold tabular-nums sm:text-3xl">
               {holdingCount}
             </p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              {stockCount} stocks · {treasuryCount} Treasuries
+            </p>
           </div>
 
           <div className="min-w-0 overflow-hidden rounded-xl border p-5">
@@ -173,6 +177,37 @@ export default async function Home() {
                 ? formatCurrency(totalMarketValue)
                 : "—"}
             </p>
+            {summary && totalMarketValue !== null && totalMarketValue > 0 && (
+              <>
+                <div className="mt-3 flex h-1.5 overflow-hidden rounded-full bg-muted">
+                  {stocksMarketValue > 0 && (
+                    <div
+                      className="bg-blue-500"
+                      style={{
+                        width: `${(stocksMarketValue / totalMarketValue) * 100}%`,
+                      }}
+                      title={`Stocks ${formatCurrency(stocksMarketValue)}`}
+                    />
+                  )}
+                  {treasuriesMarketValue > 0 && (
+                    <div
+                      className="bg-teal-500"
+                      style={{
+                        width: `${(treasuriesMarketValue / totalMarketValue) * 100}%`,
+                      }}
+                      title={`Treasuries ${formatCurrency(treasuriesMarketValue)}`}
+                    />
+                  )}
+                </div>
+                <p className="mt-1.5 text-xs text-muted-foreground">
+                  <span className="text-blue-600">Stocks</span>{" "}
+                  {formatCurrency(stocksMarketValue)}
+                  {" · "}
+                  <span className="text-teal-600">Treasuries</span>{" "}
+                  {formatCurrency(treasuriesMarketValue)}
+                </p>
+              </>
+            )}
           </div>
 
           <div className="min-w-0 overflow-hidden rounded-xl border p-5">

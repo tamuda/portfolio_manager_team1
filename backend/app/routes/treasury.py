@@ -1,3 +1,5 @@
+from decimal import Decimal
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
@@ -7,10 +9,17 @@ from app.schemas.treasury import (
     TreasuryBuyRequest,
     TreasurySellRequest,
     TreasuryHoldingResponse,
+    TreasurySellResponse,
     TreasuryValuationResponse,
+    YieldCurvePoint,
+    YieldCurveResponse,
 )
 from app.services.bond_pricing_service import BondPricingError, price_treasury
-from app.services.fred_client import FredApiError, get_yield_curve
+from app.services.fred_client import (
+    FredApiError,
+    get_yield_curve,
+    get_yield_curve_as_of,
+)
 from app.services.treasury_trading_service import (
     InsufficientFundsError,
     execute_treasury_buy,
@@ -23,26 +32,19 @@ router = APIRouter(
 )
 
 
-def _valuation(holding) -> TreasuryValuationResponse:
-    try:
-        yield_curve = get_yield_curve()
-        market_value = price_treasury(
-            face_value=holding.face_value,
-            coupon_rate=holding.coupon_rate,
-            coupon_frequency=holding.coupon_frequency,
-            maturity_date=holding.maturity_date,
-            yield_curve=yield_curve,
-        )
-    except (FredApiError, BondPricingError, ValueError) as exc:
-        raise HTTPException(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail=f"Could not value this Treasury holding: {exc}",
-        ) from exc
+def _valuation_with_curve(holding, yield_curve: dict[float, Decimal]) -> TreasuryValuationResponse:
+    market_value = price_treasury(
+        face_value=holding.face_value,
+        coupon_rate=holding.coupon_rate,
+        coupon_frequency=holding.coupon_frequency,
+        maturity_date=holding.maturity_date,
+        yield_curve=yield_curve,
+    )
 
     current_price = market_value / holding.face_value * 100
     cost_basis = holding.face_value / 100 * holding.purchase_price
     gain_loss = market_value - cost_basis
-    gain_loss_percentage = (gain_loss / cost_basis * 100) if cost_basis else 0
+    gain_loss_percentage = (gain_loss / cost_basis * 100) if cost_basis else Decimal("0")
 
     return TreasuryValuationResponse(
         **TreasuryHoldingResponse.model_validate(holding).model_dump(),
@@ -54,10 +56,83 @@ def _valuation(holding) -> TreasuryValuationResponse:
     )
 
 
+def _valuation(holding) -> TreasuryValuationResponse:
+    try:
+        yield_curve = get_yield_curve()
+        return _valuation_with_curve(holding, yield_curve)
+    except (FredApiError, BondPricingError, ValueError) as exc:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=f"Could not value this Treasury holding: {exc}",
+        ) from exc
+
+
 @router.get("", response_model=list[TreasuryHoldingResponse])
 def get_treasury_holdings(db: Session = Depends(get_db)) -> list[TreasuryHoldingResponse]:
     account = account_repository.get_account(db)
     return treasury_repository.get_treasury_holdings(db, account.id)
+
+
+@router.get("/yield-curve", response_model=YieldCurveResponse)
+def read_yield_curve() -> YieldCurveResponse:
+    try:
+        curve = get_yield_curve()
+    except FredApiError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=str(exc),
+        ) from exc
+
+    points = [
+        YieldCurvePoint(tenor_years=tenor, yield_percent=yield_pct)
+        for tenor, yield_pct in sorted(curve.items(), key=lambda item: item[0])
+    ]
+    return YieldCurveResponse(as_of=get_yield_curve_as_of(), points=points)
+
+
+def _get_treasury_performance(db: Session) -> list[TreasuryValuationResponse]:
+    account = account_repository.get_account(db)
+    holdings = treasury_repository.get_treasury_holdings(db, account.id)
+    if not holdings:
+        return []
+
+    try:
+        yield_curve = get_yield_curve()
+    except FredApiError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=str(exc),
+        ) from exc
+
+    results: list[TreasuryValuationResponse] = []
+    for holding in holdings:
+        try:
+            results.append(_valuation_with_curve(holding, yield_curve))
+        except (BondPricingError, ValueError) as exc:
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail=f"Could not value Treasury holding {holding.id}: {exc}",
+            ) from exc
+
+    return results
+
+
+@router.get("/performance", response_model=list[TreasuryValuationResponse])
+def get_treasury_performance(
+    db: Session = Depends(get_db),
+) -> list[TreasuryValuationResponse]:
+    return _get_treasury_performance(db)
+
+
+@router.post("/buy", response_model=TreasuryHoldingResponse)
+def buy(request: TreasuryBuyRequest, db: Session = Depends(get_db)) -> TreasuryHoldingResponse:
+    try:
+        return execute_treasury_buy(db, request)
+    except InsufficientFundsError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=str(exc),
+        ) from exc
 
 
 @router.get("/{holding_id}", response_model=TreasuryHoldingResponse)
@@ -82,22 +157,24 @@ def get_treasury_valuation(holding_id: int, db: Session = Depends(get_db)) -> Tr
     return _valuation(holding)
 
 
-@router.post("/buy", response_model=TreasuryHoldingResponse)
-def buy(request: TreasuryBuyRequest, db: Session = Depends(get_db)) -> TreasuryHoldingResponse:
-    try:
-        return execute_treasury_buy(db, request)
-    except InsufficientFundsError as exc:
-        raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail=str(exc),
-        ) from exc
-
-
-@router.post("/{holding_id}/sell")
-def sell(holding_id: int, request: TreasurySellRequest, db: Session = Depends(get_db)) -> None:
+@router.post("/{holding_id}/sell", response_model=TreasurySellResponse)
+def sell(
+    holding_id: int,
+    request: TreasurySellRequest,
+    db: Session = Depends(get_db),
+) -> TreasurySellResponse:
     transaction = execute_treasury_sell(db, holding_id, request)
     if transaction is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Treasury holding {holding_id} was not found",
         )
+
+    return TreasurySellResponse(
+        holding_id=holding_id,
+        ticker=transaction.ticker or "",
+        proceeds=transaction.amount,
+        cost_basis=transaction.amount - (transaction.realized_gain_loss or Decimal("0")),
+        realized_gain_loss=transaction.realized_gain_loss or Decimal("0"),
+        cash_balance_after=transaction.cash_balance_after,
+    )

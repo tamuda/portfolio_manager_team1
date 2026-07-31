@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import date, datetime
 from decimal import Decimal
 from enum import Enum
 
@@ -51,3 +51,22 @@ class TreasuryValuationResponse(TreasuryHoldingResponse):
     market_value: Decimal
     gain_loss: Decimal
     gain_loss_percentage: Decimal
+
+
+class YieldCurvePoint(BaseModel):
+    tenor_years: float
+    yield_percent: Decimal
+
+
+class YieldCurveResponse(BaseModel):
+    as_of: datetime | None
+    points: list[YieldCurvePoint]
+
+
+class TreasurySellResponse(BaseModel):
+    holding_id: int
+    ticker: str
+    proceeds: Decimal
+    cost_basis: Decimal
+    realized_gain_loss: Decimal
+    cash_balance_after: Decimal

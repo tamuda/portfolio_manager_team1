@@ -13,11 +13,21 @@ import { ApiError } from "@/lib/api/client";
 import { deleteHolding } from "@/lib/api/holdings";
 import { getLatestPrice, searchSymbols } from "@/lib/api/market-data";
 import {
+  buyTreasury,
+  getYieldCurve,
+  sellTreasury,
+} from "@/lib/api/treasury";
+import {
   buyStock,
   sellStock,
   transferCash,
 } from "@/lib/api/transactions";
 import type { SymbolSuggestion } from "@/types/market-data";
+import type {
+  TreasuryBuyRequest,
+  TreasurySellRequest,
+  YieldCurve,
+} from "@/types/treasury";
 import type {
   BuyRequest,
   SellRequest,
@@ -150,6 +160,62 @@ export async function deleteHoldingAction(id: number): Promise<ActionResult> {
       error instanceof ApiError
         ? error.message
         : "Something went wrong while deleting the holding.";
+
+    return { success: false, error: message };
+  }
+}
+
+type YieldCurveActionResult = ActionResult & {
+  curve?: YieldCurve;
+};
+
+/** Fetch the cached FRED Treasury yield curve. */
+export async function getYieldCurveAction(): Promise<YieldCurveActionResult> {
+  try {
+    const curve = await getYieldCurve();
+    return { success: true, curve };
+  } catch (error) {
+    const message =
+      error instanceof ApiError
+        ? error.message
+        : "Could not load the Treasury yield curve.";
+
+    return { success: false, error: message };
+  }
+}
+
+/** Buy a US Treasury lot (requires sufficient cash). */
+export async function buyTreasuryAction(
+  input: TreasuryBuyRequest,
+): Promise<ActionResult> {
+  try {
+    await buyTreasury(input);
+    revalidatePortfolioPaths();
+    return { success: true };
+  } catch (error) {
+    const message =
+      error instanceof ApiError
+        ? error.message
+        : "Something went wrong while buying this Treasury.";
+
+    return { success: false, error: message };
+  }
+}
+
+/** Sell an entire Treasury lot. */
+export async function sellTreasuryAction(
+  holdingId: number,
+  input: TreasurySellRequest,
+): Promise<ActionResult> {
+  try {
+    await sellTreasury(holdingId, input);
+    revalidatePortfolioPaths();
+    return { success: true };
+  } catch (error) {
+    const message =
+      error instanceof ApiError
+        ? error.message
+        : "Something went wrong while selling this Treasury.";
 
     return { success: false, error: message };
   }

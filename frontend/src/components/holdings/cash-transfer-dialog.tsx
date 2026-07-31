@@ -28,11 +28,15 @@ import type { TransferDirection } from "@/types/transaction";
 type CashTransferDialogProps = {
   cashBalance: number;
   defaultDirection?: TransferDirection;
+  label?: string;
+  variant?: "default" | "outline" | "secondary" | "ghost" | "destructive";
 };
 
 export function CashTransferDialog({
   cashBalance,
   defaultDirection = "DEPOSIT",
+  label = "Deposit / Withdraw",
+  variant = "outline",
 }: CashTransferDialogProps) {
   const [open, setOpen] = useState(false);
   const [direction, setDirection] =
@@ -64,9 +68,9 @@ export function CashTransferDialog({
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger render={<Button variant="outline" />}>
+      <DialogTrigger render={<Button variant={variant} />}>
         <BanknoteIcon data-icon="inline-start" />
-        Deposit / Withdraw
+        {label}
       </DialogTrigger>
 
       <DialogContent className="sm:max-w-md">

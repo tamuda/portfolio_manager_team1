@@ -17,13 +17,18 @@ import {
   formatCurrency,
   formatDate,
 } from "@/lib/format";
+import { cn } from "@/lib/utils";
 import type { Holding } from "@/types/holding";
 
 type BasicHoldingsTableProps = {
   holdings: Holding[];
+  className?: string;
 };
 
-export function BasicHoldingsTable({ holdings }: BasicHoldingsTableProps) {
+export function BasicHoldingsTable({
+  holdings,
+  className,
+}: BasicHoldingsTableProps) {
   const totalCostBasis = holdings.reduce(
     (sum, holding) =>
       sum + computeCostBasis(holding.quantity_added, holding.purchase_price),
@@ -31,7 +36,7 @@ export function BasicHoldingsTable({ holdings }: BasicHoldingsTableProps) {
   );
 
   return (
-    <div className="mt-8 rounded-xl border">
+    <div className={cn("mt-8 rounded-xl border", className)}>
       <Table>
         <TableHeader>
           <TableRow>
@@ -72,7 +77,6 @@ export function BasicHoldingsTable({ holdings }: BasicHoldingsTableProps) {
                   <HoldingRowActions
                     ticker={holding.ticker}
                     quantity={holding.quantity_added}
-                    holdingId={holding.id}
                   />
                 </TableCell>
               </TableRow>

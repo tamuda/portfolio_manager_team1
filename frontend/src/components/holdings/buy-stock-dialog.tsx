@@ -36,6 +36,7 @@ type BuyMode = "shares" | "dollars";
 type BuyStockDialogProps = {
   cashBalance: number;
   label?: string;
+  variant?: "default" | "outline" | "secondary" | "ghost" | "destructive";
   /** Prefill ticker (e.g. from a holdings row). */
   defaultTicker?: string;
   /** Controlled open — when set, no trigger button is rendered. */
@@ -60,7 +61,8 @@ function formatShares(value: number): string {
 
 export function BuyStockDialog({
   cashBalance,
-  label = "Buy",
+  label = "Buy stock",
+  variant = "default",
   defaultTicker = "",
   open: openProp,
   onOpenChange,
@@ -223,7 +225,7 @@ export function BuyStockDialog({
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       {!controlled && (
-        <DialogTrigger render={<Button />}>
+        <DialogTrigger render={<Button variant={variant} />}>
           <PlusIcon data-icon="inline-start" />
           {label}
         </DialogTrigger>

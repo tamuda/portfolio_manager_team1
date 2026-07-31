@@ -1,13 +1,11 @@
 "use client";
 
 /**
- * Per-row actions: Sell (primary) + Delete as escape hatch.
- * Prefer Sell so cash and the transactions ledger stay in sync.
+ * Per-row stock action: Sell (keeps cash + ledger in sync).
  */
 
 import { useState } from "react";
 
-import { DeleteHoldingButton } from "@/components/holdings/delete-holding-button";
 import { SellStockDialog } from "@/components/holdings/sell-stock-dialog";
 import { Button } from "@/components/ui/button";
 
@@ -15,14 +13,12 @@ type HoldingRowActionsProps = {
   ticker: string;
   quantity: string;
   currentPrice?: string;
-  holdingId: number;
 };
 
 export function HoldingRowActions({
   ticker,
   quantity,
   currentPrice,
-  holdingId,
 }: HoldingRowActionsProps) {
   const [sellOpen, setSellOpen] = useState(false);
   const maxQuantity = parseFloat(quantity);
@@ -38,7 +34,6 @@ export function HoldingRowActions({
       >
         Sell
       </Button>
-      <DeleteHoldingButton holding={{ id: holdingId, ticker }} />
 
       <SellStockDialog
         ticker={ticker}

@@ -3,9 +3,15 @@
 Fetches the daily US Treasury constant-maturity yield curve. Kept isolated
 from the pricing/valuation logic that consumes it so the HTTP calls can be
 swapped out or mocked in tests.
+
+Results are cached in-memory so buy dialogs and batch valuations do not
+hammer FRED (eight series per uncached call).
 """
 
+from datetime import datetime, timezone
 from decimal import Decimal
+from threading import Lock
+import time
 
 import requests
 
@@ -24,6 +30,14 @@ YIELD_CURVE_SERIES: dict[str, float] = {
     "DGS10": 10.0,
     "DGS30": 30.0,
 }
+
+# Cache TTL — long enough to protect FRED rate limits during a session.
+_CACHE_TTL_SECONDS = 30 * 60
+
+_cache_lock = Lock()
+_cached_curve: dict[float, Decimal] | None = None
+_cached_at: float | None = None
+_cached_as_of: datetime | None = None
 
 
 class FredApiError(Exception):
@@ -67,16 +81,7 @@ def _fetch_latest_observation(series_id: str, api_key: str) -> Decimal | None:
     return None
 
 
-def get_yield_curve() -> dict[float, Decimal]:
-    """
-    Fetch the current daily Treasury yield curve from FRED.
-
-    Returns a mapping of tenor-in-years -> yield (as a percentage, e.g.
-    Decimal("4.25") means 4.25%) covering the 1-month through 30-year
-    constant-maturity series. A tenor is omitted if FRED has no recent
-    observation for it.
-    """
-
+def _fetch_yield_curve() -> dict[float, Decimal]:
     api_key = _get_api_key()
 
     curve: dict[float, Decimal] = {}
@@ -89,3 +94,41 @@ def get_yield_curve() -> dict[float, Decimal]:
         raise FredApiError("FRED returned no usable Treasury yield observations.")
 
     return curve
+
+
+def get_yield_curve(*, force_refresh: bool = False) -> dict[float, Decimal]:
+    """
+    Fetch the current daily Treasury yield curve from FRED.
+
+    Returns a mapping of tenor-in-years -> yield (as a percentage, e.g.
+    Decimal("4.25") means 4.25%) covering the 1-month through 30-year
+    constant-maturity series. A tenor is omitted if FRED has no recent
+    observation for it.
+
+    Cached for `_CACHE_TTL_SECONDS` unless `force_refresh` is True.
+    """
+
+    global _cached_curve, _cached_at, _cached_as_of
+
+    now = time.monotonic()
+    with _cache_lock:
+        if (
+            not force_refresh
+            and _cached_curve is not None
+            and _cached_at is not None
+            and (now - _cached_at) < _CACHE_TTL_SECONDS
+        ):
+            return dict(_cached_curve)
+
+        curve = _fetch_yield_curve()
+        _cached_curve = curve
+        _cached_at = now
+        _cached_as_of = datetime.now(timezone.utc)
+        return dict(curve)
+
+
+def get_yield_curve_as_of() -> datetime | None:
+    """UTC timestamp of the last successful curve fetch (None if never cached)."""
+
+    with _cache_lock:
+        return _cached_as_of

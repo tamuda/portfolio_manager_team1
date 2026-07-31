@@ -56,9 +56,9 @@ export function PortfolioOverviewCharts({
     <div className="mt-8 grid gap-4 lg:grid-cols-2">
       <Card>
         <CardHeader>
-          <CardTitle>Allocation</CardTitle>
+          <CardTitle>Stock allocation</CardTitle>
           <CardDescription>
-            Share of portfolio by ticker
+            Share of equity holdings by ticker
           </CardDescription>
         </CardHeader>
         <CardContent>
