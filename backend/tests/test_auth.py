@@ -67,3 +67,29 @@ def test_me_returns_current_user(client, auth_headers, test_user):
     body = response.json()
     assert body["id"] == test_user.id
     assert body["email"] == test_user.email
+
+
+def test_register_rejects_password_shorter_than_8_characters(client):
+    response = client.post(
+        "/api/v1/auth/register",
+        json={"email": "shortpass@example.com", "password": "short1"},
+    )
+    assert response.status_code == 422
+
+
+def test_register_rejects_malformed_email(client):
+    response = client.post(
+        "/api/v1/auth/register",
+        json={"email": "not-an-email", "password": "validpassword123"},
+    )
+    assert response.status_code == 422
+
+
+def test_protected_route_rejects_token_for_deleted_user(
+    client, db_session, test_user, auth_headers
+):
+    db_session.delete(test_user)
+    db_session.commit()
+
+    response = client.get("/api/v1/account", headers=auth_headers)
+    assert response.status_code == 401
