@@ -1,5 +1,13 @@
 """Shared pytest fixtures: an isolated SQLite-backed app + auth helpers."""
 
+import os
+
+# Settings() loads at import time and requires JWT_SECRET_KEY.
+os.environ.setdefault(
+    "JWT_SECRET_KEY",
+    "test-secret-key-at-least-32-bytes-long!!",
+)
+
 import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
