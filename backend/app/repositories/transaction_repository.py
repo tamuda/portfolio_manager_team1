@@ -7,8 +7,13 @@ from sqlalchemy.orm import Session
 from app.database.models import Transaction, TransactionType
 
 
-def get_transactions(db: Session) -> list[Transaction]:
-    return db.query(Transaction).order_by(Transaction.executed_at.desc(), Transaction.id.desc()).all()
+def get_transactions(db: Session, account_id: int) -> list[Transaction]:
+    return (
+        db.query(Transaction)
+        .filter(Transaction.account_id == account_id)
+        .order_by(Transaction.executed_at.desc(), Transaction.id.desc())
+        .all()
+    )
 
 
 def build_transaction(

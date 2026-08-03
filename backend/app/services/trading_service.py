@@ -11,7 +11,7 @@ from decimal import Decimal
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
-from app.database.models import Holding, Transaction, TransactionType
+from app.database.models import Holding, Transaction, TransactionType, User
 from app.repositories import account_repository, holding_repository, transaction_repository
 from app.schemas.transaction import BuyRequest, SellRequest, TransferDirection, TransferRequest
 
@@ -35,11 +35,11 @@ def _commit(db: Session, transaction: Transaction) -> Transaction:
     return transaction
 
 
-def execute_buy(db: Session, request: BuyRequest) -> Transaction:
+def execute_buy(db: Session, user: User, request: BuyRequest) -> Transaction:
     ticker = request.ticker.strip().upper()
     total_cost = request.quantity * request.price
 
-    account = account_repository.get_account(db)
+    account = account_repository.get_account(db, user)
     if total_cost > account.cash_balance:
         raise InsufficientFundsError(
             f"Buying {request.quantity} {ticker} at {request.price} costs "
@@ -49,6 +49,7 @@ def execute_buy(db: Session, request: BuyRequest) -> Transaction:
 
     db.add(
         Holding(
+            user_id=user.id,
             ticker=ticker,
             quantity_added=request.quantity,
             purchase_price=request.price,
@@ -70,10 +71,10 @@ def execute_buy(db: Session, request: BuyRequest) -> Transaction:
     return _commit(db, transaction)
 
 
-def execute_sell(db: Session, request: SellRequest) -> Transaction:
+def execute_sell(db: Session, user: User, request: SellRequest) -> Transaction:
     ticker = request.ticker.strip().upper()
 
-    lots = holding_repository.get_holdings_by_ticker(db, ticker)
+    lots = holding_repository.get_holdings_by_ticker(db, user, ticker)
     available = sum((lot.quantity_added for lot in lots), Decimal("0"))
     if request.quantity > available:
         raise InsufficientSharesError(
@@ -98,7 +99,7 @@ def execute_sell(db: Session, request: SellRequest) -> Transaction:
     proceeds = request.quantity * request.price
     realized_gain_loss = proceeds - cost_basis_sold
 
-    account = account_repository.get_account(db)
+    account = account_repository.get_account(db, user)
     account.cash_balance += proceeds
 
     transaction = transaction_repository.build_transaction(
@@ -114,8 +115,8 @@ def execute_sell(db: Session, request: SellRequest) -> Transaction:
     return _commit(db, transaction)
 
 
-def execute_transfer(db: Session, request: TransferRequest) -> Transaction:
-    account = account_repository.get_account(db)
+def execute_transfer(db: Session, user: User, request: TransferRequest) -> Transaction:
+    account = account_repository.get_account(db, user)
 
     if request.direction == TransferDirection.WITHDRAWAL:
         if request.amount > account.cash_balance:

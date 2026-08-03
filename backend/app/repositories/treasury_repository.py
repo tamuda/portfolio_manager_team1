@@ -14,5 +14,11 @@ def get_treasury_holdings(db: Session, account_id: int) -> list[TreasuryHolding]
     )
 
 
-def get_treasury_holding(db: Session, holding_id: int) -> TreasuryHolding | None:
-    return db.get(TreasuryHolding, holding_id)
+def get_treasury_holding(
+    db: Session, account_id: int, holding_id: int
+) -> TreasuryHolding | None:
+    return (
+        db.query(TreasuryHolding)
+        .filter(TreasuryHolding.id == holding_id, TreasuryHolding.account_id == account_id)
+        .first()
+    )

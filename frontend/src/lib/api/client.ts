@@ -5,6 +5,10 @@
  * so error handling and base URL configuration live in one place.
  */
 
+import { cookies } from "next/headers";
+
+import { AUTH_COOKIE_NAME } from "@/lib/auth/cookie";
+
 /** Thrown when the backend returns a non-2xx response. */
 export class ApiError extends Error {
   constructor(
@@ -51,10 +55,17 @@ export async function apiFetch<T>(
 ): Promise<T> {
   const { cache = "no-store", headers, ...rest } = options;
 
+  // apiFetch only ever runs server-side (Server Components/Actions), so
+  // reading the httpOnly auth cookie here is what lets every existing
+  // lib/api/* call become user-scoped without touching each call site.
+  const cookieStore = await cookies();
+  const token = cookieStore.get(AUTH_COOKIE_NAME)?.value;
+
   const response = await fetch(`${getApiBaseUrl()}${path}`, {
     cache,
     headers: {
       "Content-Type": "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
       ...headers,
     },
     ...rest,

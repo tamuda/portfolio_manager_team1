@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 
 import { BenchmarkComparison } from "@/components/dashboard/benchmark-comparison";
 import { DashboardEmptyState } from "@/components/dashboard/dashboard-empty-state";
@@ -76,6 +77,9 @@ export default async function Home() {
       snapshotWatchlist = [];
     }
   } catch (error) {
+    if (error instanceof ApiError && error.status === 401) {
+      redirect("/login");
+    }
     errorMessage =
       error instanceof ApiError
         ? error.message

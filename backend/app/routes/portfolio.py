@@ -5,7 +5,9 @@ from decimal import Decimal
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
+from app.auth.dependencies import get_current_user
 from app.database.connection import get_db
+from app.database.models import User
 from app.repositories import account_repository, holding_repository, treasury_repository
 from app.routes.holdings import _get_holdings_performance
 from app.routes.treasury import _get_treasury_performance
@@ -65,16 +67,17 @@ def _treasury_cost_only_summary(db: Session, account_id: int) -> AssetClassSumma
 @router.get("/summary", response_model=CombinedPortfolioSummaryResponse)
 def get_combined_portfolio_summary(
     db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ) -> CombinedPortfolioSummaryResponse:
-    account = account_repository.get_account(db)
+    account = account_repository.get_account(db, current_user)
 
     stocks_summary = _empty_class_summary()
     treasuries_summary = _empty_class_summary()
 
-    stock_lots = holding_repository.get_holdings(db)
+    stock_lots = holding_repository.get_holdings(db, current_user)
     if stock_lots:
         try:
-            stock_holdings = _get_holdings_performance(db)
+            stock_holdings = _get_holdings_performance(db, current_user)
             stocks_summary = _to_class_summary(stock_holdings, len(stock_holdings))
         except HTTPException:
             # Fall back to cost basis only when equity prices fail.
@@ -87,7 +90,7 @@ def get_combined_portfolio_summary(
     treasury_lots = treasury_repository.get_treasury_holdings(db, account.id)
     if treasury_lots:
         try:
-            treasury_holdings = _get_treasury_performance(db)
+            treasury_holdings = _get_treasury_performance(db, current_user)
             treasuries_summary = _to_class_summary(
                 treasury_holdings, len(treasury_holdings)
             )

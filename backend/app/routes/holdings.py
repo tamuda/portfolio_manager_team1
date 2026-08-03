@@ -3,7 +3,9 @@ from fastapi import APIRouter, Depends, status, HTTPException
 from sqlalchemy.exc import DataError, IntegrityError
 from sqlalchemy.orm import Session
 
+from app.auth.dependencies import get_current_user
 from app.database.connection import get_db
+from app.database.models import User
 from app.repositories import holding_repository
 from app.schemas.holding import (
     HoldingCreate,
@@ -28,23 +30,31 @@ router = APIRouter(
 
 
 @router.get("", response_model=list[HoldingResponse])
-def get_holdings(db: Session = Depends(get_db)) -> list[HoldingResponse]:
-    return holding_repository.get_holdings(db)
+def get_holdings(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> list[HoldingResponse]:
+    return holding_repository.get_holdings(db, current_user)
 
 @router.post("", response_model=HoldingResponse)
-def create_holding(request: HoldingCreate, db: Session = Depends(get_db)) -> HoldingResponse:
+def create_holding(
+    request: HoldingCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> HoldingResponse:
     try:
-        return holding_repository.create_holding(db, request)
+        return holding_repository.create_holding(db, current_user, request)
     except (DataError, IntegrityError) as exc:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail="Holding data violates a database constraint",
         ) from exc
-    
+
 def _get_holdings_performance(
     db: Session,
+    user: User,
 ) -> list[HoldingPerformanceResponse]:
-    holdings = holding_repository.get_holdings(db)
+    holdings = holding_repository.get_holdings(db, user)
 
     results: list[HoldingPerformanceResponse] = []
     for holding in holdings:
@@ -91,8 +101,9 @@ def _get_holdings_performance(
 )
 def get_holdings_performance(
     db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ) -> list[HoldingPerformanceResponse]:
-    return _get_holdings_performance(db)
+    return _get_holdings_performance(db, current_user)
 
 
 @router.get(
@@ -101,14 +112,19 @@ def get_holdings_performance(
 )
 def get_portfolio_summary(
     db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ) -> PortfolioSummaryResponse:
-    holdings_performance = _get_holdings_performance(db)
+    holdings_performance = _get_holdings_performance(db, current_user)
     summary = calculate_portfolio_summary(holdings_performance)
     return PortfolioSummaryResponse(**summary)
 
 @router.get("/{holding_id}", response_model=HoldingResponse)
-def get_holding(holding_id: int, db: Session = Depends(get_db)) -> HoldingResponse:
-    holding = holding_repository.get_holding(db, holding_id)
+def get_holding(
+    holding_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> HoldingResponse:
+    holding = holding_repository.get_holding(db, current_user, holding_id)
     if holding is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -117,9 +133,14 @@ def get_holding(holding_id: int, db: Session = Depends(get_db)) -> HoldingRespon
     return holding
 
 @router.patch("/{holding_id}", response_model=HoldingResponse)
-def update_holding(holding_id: int, request: HoldingUpdate, db: Session = Depends(get_db)) -> HoldingResponse:
+def update_holding(
+    holding_id: int,
+    request: HoldingUpdate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> HoldingResponse:
     try:
-        holding = holding_repository.update_holding(db, holding_id, request)
+        holding = holding_repository.update_holding(db, current_user, holding_id, request)
     except (DataError, IntegrityError) as exc:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
@@ -133,8 +154,12 @@ def update_holding(holding_id: int, request: HoldingUpdate, db: Session = Depend
     return holding
 
 @router.delete("/{holding_id}")
-def delete_holding(holding_id: int, db: Session = Depends(get_db)) -> None:
-    if not holding_repository.delete_holding(db, holding_id):
+def delete_holding(
+    holding_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> None:
+    if not holding_repository.delete_holding(db, current_user, holding_id):
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Holding {holding_id} was not found",

@@ -1,3 +1,5 @@
+import { redirect } from "next/navigation";
+
 import { AddAssetClassCard } from "@/components/holdings/add-asset-class-card";
 import { AssetSectionHeader } from "@/components/holdings/asset-section-header";
 import { BasicHoldingsTable } from "@/components/holdings/basic-holdings-table";
@@ -71,6 +73,9 @@ export default async function PortfoliosPage() {
       }
     }
   } catch (error) {
+    if (error instanceof ApiError && error.status === 401) {
+      redirect("/login");
+    }
     errorMessage =
       error instanceof ApiError
         ? error.message

@@ -12,7 +12,7 @@ from decimal import Decimal
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
-from app.database.models import Transaction, TransactionType, TreasuryHolding
+from app.database.models import Transaction, TransactionType, TreasuryHolding, User
 from app.repositories import account_repository, transaction_repository, treasury_repository
 from app.schemas.treasury import TreasuryBuyRequest, TreasurySellRequest
 
@@ -38,10 +38,10 @@ def _commit(db: Session, transaction: Transaction) -> Transaction:
     return transaction
 
 
-def execute_treasury_buy(db: Session, request: TreasuryBuyRequest) -> TreasuryHolding:
+def execute_treasury_buy(db: Session, user: User, request: TreasuryBuyRequest) -> TreasuryHolding:
     total_cost = request.face_value / Decimal("100") * request.purchase_price
 
-    account = account_repository.get_account(db)
+    account = account_repository.get_account(db, user)
     if total_cost > account.cash_balance:
         raise InsufficientFundsError(
             f"Buying {request.face_value} face value of this Treasury "
@@ -79,9 +79,10 @@ def execute_treasury_buy(db: Session, request: TreasuryBuyRequest) -> TreasuryHo
 
 
 def execute_treasury_sell(
-    db: Session, holding_id: int, request: TreasurySellRequest
+    db: Session, user: User, holding_id: int, request: TreasurySellRequest
 ) -> Transaction | None:
-    holding = treasury_repository.get_treasury_holding(db, holding_id)
+    account = account_repository.get_account(db, user)
+    holding = treasury_repository.get_treasury_holding(db, account.id, holding_id)
     if holding is None:
         return None
 
@@ -91,7 +92,6 @@ def execute_treasury_sell(
     proceeds = face_value / Decimal("100") * request.sale_price
     realized_gain_loss = proceeds - cost_basis
 
-    account = account_repository.get_account(db)
     account.cash_balance += proceeds
 
     db.delete(holding)

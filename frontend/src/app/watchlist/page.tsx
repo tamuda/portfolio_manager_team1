@@ -1,3 +1,5 @@
+import { redirect } from "next/navigation";
+
 import { WatchlistView } from "@/components/watchlist/watchlist-view";
 import { ApiError } from "@/lib/api/client";
 import { getWatchlist } from "@/lib/api/watchlist";
@@ -16,6 +18,9 @@ export default async function WatchlistPage() {
   try {
     items = await getWatchlist();
   } catch (error) {
+    if (error instanceof ApiError && error.status === 401) {
+      redirect("/login");
+    }
     errorMessage =
       error instanceof ApiError
         ? error.message

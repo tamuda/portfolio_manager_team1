@@ -13,6 +13,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.config import settings
 from app.routes import (
     account,
+    auth,
     health,
     holdings,
     market_data,
@@ -37,7 +38,7 @@ def create_app() -> FastAPI:
     # Group every versioned route under one router, then mount it once.
     api_router = APIRouter()
     api_router.include_router(health.router, tags=["health"])
-    print("Came to main.py")
+    api_router.include_router(auth.router, tags=["auth"])
     api_router.include_router(holdings.router, tags=["holdings"])
     api_router.include_router(market_data.router, tags=["market-data"])
     api_router.include_router(watchlist.router, tags=["watchlist"])

@@ -3,39 +3,45 @@
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
-from app.database.models import WatchlistItem
+from app.database.models import User, WatchlistItem
 from app.schemas.watchlist import WatchlistItemCreate
 
 
-def get_watchlist(db: Session) -> list[WatchlistItem]:
+def get_watchlist(db: Session, user: User) -> list[WatchlistItem]:
     return (
         db.query(WatchlistItem)
+        .filter(WatchlistItem.user_id == user.id)
         .order_by(WatchlistItem.position, WatchlistItem.id)
         .all()
     )
 
 
-def get_watchlist_item(db: Session, item_id: int) -> WatchlistItem | None:
-    return db.get(WatchlistItem, item_id)
-
-
-def get_watchlist_item_by_ticker(db: Session, ticker: str) -> WatchlistItem | None:
+def get_watchlist_item(db: Session, user: User, item_id: int) -> WatchlistItem | None:
     return (
         db.query(WatchlistItem)
-        .filter(WatchlistItem.ticker == ticker)
+        .filter(WatchlistItem.id == item_id, WatchlistItem.user_id == user.id)
         .first()
     )
 
 
-def create_watchlist_item(db: Session, data: WatchlistItemCreate) -> WatchlistItem:
+def get_watchlist_item_by_ticker(db: Session, user: User, ticker: str) -> WatchlistItem | None:
+    return (
+        db.query(WatchlistItem)
+        .filter(WatchlistItem.user_id == user.id, WatchlistItem.ticker == ticker)
+        .first()
+    )
+
+
+def create_watchlist_item(db: Session, user: User, data: WatchlistItemCreate) -> WatchlistItem:
     last_position = (
         db.query(WatchlistItem)
+        .filter(WatchlistItem.user_id == user.id)
         .order_by(WatchlistItem.position.desc())
         .first()
     )
     next_position = (last_position.position + 1) if last_position else 0
 
-    item = WatchlistItem(ticker=data.ticker, position=next_position)
+    item = WatchlistItem(user_id=user.id, ticker=data.ticker, position=next_position)
     db.add(item)
     try:
         db.commit()
@@ -46,8 +52,8 @@ def create_watchlist_item(db: Session, data: WatchlistItemCreate) -> WatchlistIt
     return item
 
 
-def delete_watchlist_item(db: Session, item_id: int) -> bool:
-    item = get_watchlist_item(db, item_id)
+def delete_watchlist_item(db: Session, user: User, item_id: int) -> bool:
+    item = get_watchlist_item(db, user, item_id)
     if item is None:
         return False
 
@@ -56,8 +62,8 @@ def delete_watchlist_item(db: Session, item_id: int) -> bool:
     return True
 
 
-def reorder_watchlist(db: Session, ordered_ids: list[int]) -> list[WatchlistItem]:
-    items_by_id = {item.id: item for item in get_watchlist(db)}
+def reorder_watchlist(db: Session, user: User, ordered_ids: list[int]) -> list[WatchlistItem]:
+    items_by_id = {item.id: item for item in get_watchlist(db, user)}
 
     for position, item_id in enumerate(ordered_ids):
         item = items_by_id.get(item_id)
@@ -70,4 +76,4 @@ def reorder_watchlist(db: Session, ordered_ids: list[int]) -> list[WatchlistItem
         db.rollback()
         raise
 
-    return get_watchlist(db)
+    return get_watchlist(db, user)

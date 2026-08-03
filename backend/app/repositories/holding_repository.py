@@ -3,31 +3,36 @@
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
-from app.database.models import Holding
+from app.database.models import Holding, User
 from app.schemas.holding import HoldingCreate, HoldingUpdate
 
 
-def get_holdings(db: Session) -> list[Holding]:
-    return db.query(Holding).all()
+def get_holdings(db: Session, user: User) -> list[Holding]:
+    return db.query(Holding).filter(Holding.user_id == user.id).all()
 
 
-def get_holding(db: Session, holding_id: int) -> Holding | None:
-    return db.get(Holding, holding_id)
+def get_holding(db: Session, user: User, holding_id: int) -> Holding | None:
+    return (
+        db.query(Holding)
+        .filter(Holding.id == holding_id, Holding.user_id == user.id)
+        .first()
+    )
 
 
-def get_holdings_by_ticker(db: Session, ticker: str) -> list[Holding]:
-    """Return every lot of a ticker, oldest purchase first (for FIFO disposal on sell)."""
+def get_holdings_by_ticker(db: Session, user: User, ticker: str) -> list[Holding]:
+    """Return every lot of a ticker the user holds, oldest purchase first (for FIFO disposal on sell)."""
 
     return (
         db.query(Holding)
-        .filter(Holding.ticker == ticker)
+        .filter(Holding.user_id == user.id, Holding.ticker == ticker)
         .order_by(Holding.purchase_date.asc(), Holding.id.asc())
         .all()
     )
 
 
-def create_holding(db: Session, data: HoldingCreate) -> Holding:
+def create_holding(db: Session, user: User, data: HoldingCreate) -> Holding:
     holding = Holding(
+        user_id=user.id,
         ticker=data.ticker,
         quantity_added=data.quantity_added,
         purchase_price=data.purchase_price,
@@ -43,8 +48,10 @@ def create_holding(db: Session, data: HoldingCreate) -> Holding:
     return holding
 
 
-def update_holding(db: Session, holding_id: int, data: HoldingUpdate) -> Holding | None:
-    holding = get_holding(db, holding_id)
+def update_holding(
+    db: Session, user: User, holding_id: int, data: HoldingUpdate
+) -> Holding | None:
+    holding = get_holding(db, user, holding_id)
     if holding is None:
         return None
 
@@ -60,8 +67,8 @@ def update_holding(db: Session, holding_id: int, data: HoldingUpdate) -> Holding
     return holding
 
 
-def delete_holding(db: Session, holding_id: int) -> bool:
-    holding = get_holding(db, holding_id)
+def delete_holding(db: Session, user: User, holding_id: int) -> bool:
+    holding = get_holding(db, user, holding_id)
     if holding is None:
         return False
 

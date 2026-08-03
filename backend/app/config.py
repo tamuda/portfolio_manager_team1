@@ -28,5 +28,11 @@ class Settings(BaseSettings):
     # API key for the St. Louis Fed's FRED API (used to fetch Treasury yield curve data).
     fred_api_key: str | None = None
 
+    # Secret used to sign/verify JWTs. Required — no default, so the app
+    # fails fast at startup rather than running with a guessable secret.
+    jwt_secret_key: str
+    jwt_algorithm: str = "HS256"
+    access_token_expire_minutes: int = 60 * 24 * 7  # 7 days
+
 
 settings = Settings()

@@ -1,8 +1,10 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
+from app.auth.dependencies import get_current_user
 from app.database.connection import get_db
-from app.repositories import transaction_repository
+from app.database.models import User
+from app.repositories import account_repository, transaction_repository
 from app.schemas.transaction import (
     BuyRequest,
     SellRequest,
@@ -24,14 +26,22 @@ router = APIRouter(
 
 
 @router.get("", response_model=list[TransactionResponse])
-def get_transactions(db: Session = Depends(get_db)) -> list[TransactionResponse]:
-    return transaction_repository.get_transactions(db)
+def get_transactions(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> list[TransactionResponse]:
+    account = account_repository.get_account(db, current_user)
+    return transaction_repository.get_transactions(db, account.id)
 
 
 @router.post("/buy", response_model=TransactionResponse)
-def buy(request: BuyRequest, db: Session = Depends(get_db)) -> TransactionResponse:
+def buy(
+    request: BuyRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> TransactionResponse:
     try:
-        return execute_buy(db, request)
+        return execute_buy(db, current_user, request)
     except InsufficientFundsError as exc:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
@@ -40,9 +50,13 @@ def buy(request: BuyRequest, db: Session = Depends(get_db)) -> TransactionRespon
 
 
 @router.post("/sell", response_model=TransactionResponse)
-def sell(request: SellRequest, db: Session = Depends(get_db)) -> TransactionResponse:
+def sell(
+    request: SellRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> TransactionResponse:
     try:
-        return execute_sell(db, request)
+        return execute_sell(db, current_user, request)
     except InsufficientSharesError as exc:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
@@ -51,9 +65,13 @@ def sell(request: SellRequest, db: Session = Depends(get_db)) -> TransactionResp
 
 
 @router.post("/transfer", response_model=TransactionResponse)
-def transfer(request: TransferRequest, db: Session = Depends(get_db)) -> TransactionResponse:
+def transfer(
+    request: TransferRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> TransactionResponse:
     try:
-        return execute_transfer(db, request)
+        return execute_transfer(db, current_user, request)
     except InsufficientFundsError as exc:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,

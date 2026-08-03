@@ -20,10 +20,20 @@ class TreasuryType(str, enum.Enum):
     BOND = "BOND"
 
 
+class User(Base):
+    __tablename__ = "users"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    email = Column(String(255), nullable=False, unique=True, index=True)
+    hashed_password = Column(String(255), nullable=False)
+    created_at = Column(DateTime, nullable=False, server_default=func.now())
+
+
 class Holding(Base):
     __tablename__ = "holdings"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
     ticker = Column(String(20), nullable=False, index=True)
     quantity_added = Column(Numeric(18, 6), nullable=False)
     purchase_price = Column(Numeric(18, 6), nullable=False)
@@ -34,16 +44,18 @@ class WatchlistItem(Base):
     __tablename__ = "watchlist_items"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
     ticker = Column(String(20), nullable=False, index=True)
     position = Column(Integer, nullable=False, default=0)
 
 
 class Account(Base):
-    """The single brokerage account. Cash balance is funded by transfers."""
+    """A user's brokerage account. Cash balance is funded by transfers."""
 
     __tablename__ = "accounts"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, unique=True, index=True)
     cash_balance = Column(Numeric(18, 6), nullable=False, default=0)
 
 

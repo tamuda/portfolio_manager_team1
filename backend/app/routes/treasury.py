@@ -3,7 +3,9 @@ from decimal import Decimal
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
+from app.auth.dependencies import get_current_user
 from app.database.connection import get_db
+from app.database.models import User
 from app.repositories import account_repository, treasury_repository
 from app.schemas.treasury import (
     TreasuryBuyRequest,
@@ -68,8 +70,11 @@ def _valuation(holding) -> TreasuryValuationResponse:
 
 
 @router.get("", response_model=list[TreasuryHoldingResponse])
-def get_treasury_holdings(db: Session = Depends(get_db)) -> list[TreasuryHoldingResponse]:
-    account = account_repository.get_account(db)
+def get_treasury_holdings(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> list[TreasuryHoldingResponse]:
+    account = account_repository.get_account(db, current_user)
     return treasury_repository.get_treasury_holdings(db, account.id)
 
 
@@ -90,8 +95,8 @@ def read_yield_curve() -> YieldCurveResponse:
     return YieldCurveResponse(as_of=get_yield_curve_as_of(), points=points)
 
 
-def _get_treasury_performance(db: Session) -> list[TreasuryValuationResponse]:
-    account = account_repository.get_account(db)
+def _get_treasury_performance(db: Session, user: User) -> list[TreasuryValuationResponse]:
+    account = account_repository.get_account(db, user)
     holdings = treasury_repository.get_treasury_holdings(db, account.id)
     if not holdings:
         return []
@@ -120,14 +125,19 @@ def _get_treasury_performance(db: Session) -> list[TreasuryValuationResponse]:
 @router.get("/performance", response_model=list[TreasuryValuationResponse])
 def get_treasury_performance(
     db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ) -> list[TreasuryValuationResponse]:
-    return _get_treasury_performance(db)
+    return _get_treasury_performance(db, current_user)
 
 
 @router.post("/buy", response_model=TreasuryHoldingResponse)
-def buy(request: TreasuryBuyRequest, db: Session = Depends(get_db)) -> TreasuryHoldingResponse:
+def buy(
+    request: TreasuryBuyRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> TreasuryHoldingResponse:
     try:
-        return execute_treasury_buy(db, request)
+        return execute_treasury_buy(db, current_user, request)
     except InsufficientFundsError as exc:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
@@ -136,8 +146,13 @@ def buy(request: TreasuryBuyRequest, db: Session = Depends(get_db)) -> TreasuryH
 
 
 @router.get("/{holding_id}", response_model=TreasuryHoldingResponse)
-def get_treasury_holding(holding_id: int, db: Session = Depends(get_db)) -> TreasuryHoldingResponse:
-    holding = treasury_repository.get_treasury_holding(db, holding_id)
+def get_treasury_holding(
+    holding_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> TreasuryHoldingResponse:
+    account = account_repository.get_account(db, current_user)
+    holding = treasury_repository.get_treasury_holding(db, account.id, holding_id)
     if holding is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -147,8 +162,13 @@ def get_treasury_holding(holding_id: int, db: Session = Depends(get_db)) -> Trea
 
 
 @router.get("/{holding_id}/valuation", response_model=TreasuryValuationResponse)
-def get_treasury_valuation(holding_id: int, db: Session = Depends(get_db)) -> TreasuryValuationResponse:
-    holding = treasury_repository.get_treasury_holding(db, holding_id)
+def get_treasury_valuation(
+    holding_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> TreasuryValuationResponse:
+    account = account_repository.get_account(db, current_user)
+    holding = treasury_repository.get_treasury_holding(db, account.id, holding_id)
     if holding is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -162,8 +182,9 @@ def sell(
     holding_id: int,
     request: TreasurySellRequest,
     db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ) -> TreasurySellResponse:
-    transaction = execute_treasury_sell(db, holding_id, request)
+    transaction = execute_treasury_sell(db, current_user, holding_id, request)
     if transaction is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
